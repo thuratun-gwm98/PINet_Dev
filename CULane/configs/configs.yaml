@@ -1,0 +1,39 @@
+dataset:
+  dataset_root_dir: 'dataset/small-client'
+  batch_size: 4
+  img_width: 512  # 1920
+  img_height: 256  # 768
+  resize_ratio: 8
+  
+  flip_ratio: 0.6
+  translation_ratio: 0.6
+  rotate_ratio: 0.6
+  noise_ratio: 0.6
+  intensity_ratio: 0.6
+  shadow_ratio: 0.6
+  
+optimizer:
+  lr: 0.001
+  weight_decay: 0.00001
+
+trainer:
+  feature_size: 4
+  save_path: "savefile/"
+  n_epoch: 30
+  pretrained_weight: "pretrained_model/DDRNet23s_imagenet.pth"
+  pretrained: True
+
+loss:
+  K1: 1.0
+  K2: 2.0
+  constant_offset: 0.2
+  constant_exist: 2.5
+  constant_nonexist: 1.0
+  constant_angle: 1.0
+  constant_similarity: 1.0
+  constant_attention: 0.01
+  constant_alpha: 0.5
+  constant_beta: 0.5
+  constant_l: 1.0
+  constant_lane_loss: 1.0
+  constant_instance_loss: 1.0
