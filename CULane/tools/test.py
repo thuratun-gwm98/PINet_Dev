@@ -7,12 +7,12 @@
 import cv2
 import json
 import torch
-import model_helper
+from src.models import model_helper
 import numpy as np
 from copy import deepcopy
 import time
-from parameters import Parameters
-import util
+from src.data.parameters import Parameters
+from src.data import util
 import os
 from pathlib import Path
 from tqdm import tqdm
@@ -20,7 +20,7 @@ from sklearn.linear_model import LinearRegression
 from patsy import cr
 import csaps
 
-from data_loader import DataGenerator
+from src.data.data_loader import DataGenerator
 
 p = Parameters()
 
@@ -43,10 +43,10 @@ def Testing():
     ##############################
     print('Get agent')
     if p.model_path == "":
-        lane_agent = model_helper.Agent()
+        lane_agent = model_helper.ModelAgent()
     else:
-        lane_agent = model_helper.Agent()
-        lane_agent.load_weights(18, "tensor(0.3098)")
+        lane_agent = model_helper.ModelAgent()
+        lane_agent.load_weights("30_tensor(0.4500)_lane_detection_network.pth")
 	
     ##############################
     ## Check GPU
@@ -69,12 +69,12 @@ def Testing():
             cv2.waitKey(0) 
 
     elif p.mode == 1: # check model with video
-        cap = cv2.VideoCapture("/home/thuratun/GW_workspace/CS2/Hitachi_Astemo_Prj/MONO_Lss/MonoLSS/kitti/inference_data/testing_videos/output_2_2.mp4")
+        cap = cv2.VideoCapture("/home/thuratun/GW_workspace/CS2/Hitachi_Astemo_Prj/MONO_Lss/MonoLSS/kitti/inference_data/testing_videos/output_0_3.mp4")
         while(cap.isOpened()):
             ret, frame = cap.read()
             torch.cuda.synchronize()
             prevTime = time.time()
-            frame = cv2.resize(frame, (512,256))/255.0
+            frame = cv2.resize(frame, (512, 256))/255.0
             frame = np.rollaxis(frame, axis=2, start=0)
             _, _, ti = test(lane_agent, np.array([frame])) 
             curTime = time.time()
@@ -305,13 +305,13 @@ def test(lane_agent, test_images, thresh = p.threshold_point, index= -1):
         instance = np.rollaxis(instance, axis=2, start=0)
 
         # generate point and cluster
-        raw_x, raw_y = generate_result(confidence, offset, instance, thresh)
+        raw_x, raw_y = generate_result(confidence, offset, instance, thresh, deepcopy(image))
 
         # eliminate fewer points
         in_x, in_y = eliminate_fewer_points(raw_x, raw_y)
                 
         # sort points along y 
-        in_x, in_y = util.sort_along_y(in_x, in_y)  
+        # in_x, in_y = util.sort_along_y(in_x, in_y)  
 
         result_image = util.draw_points(in_x, in_y, deepcopy(image))
 
@@ -329,7 +329,9 @@ def eliminate_fewer_points(x, y):
     out_x = []
     out_y = []
     for i, j in zip(x, y):
-        if len(i)>5:
+        # print(f"Eli: x -> {i}")
+        # print(f"Eli: y -> {j}")
+        if len(i)>3:  # default - 5
             out_x.append(i)
             out_y.append(j)     
     return out_x, out_y   
@@ -337,14 +339,14 @@ def eliminate_fewer_points(x, y):
 ############################################################################
 ## generate raw output
 ############################################################################
-def generate_result(confidance, offsets,instance, thresh):
+def generate_result(confidance, offsets,instance, thresh, image):
 
     mask = confidance > thresh
+    # print(f"Mask ")
 
     grid = p.grid_location[mask]
     offset = offsets[mask]
     feature = instance[mask]
-
     lane_feature = []
     x = []
     y = []

@@ -6,20 +6,21 @@
 
 import torch.nn as nn
 import torch
-from util_hourglass import *
 from copy import deepcopy
 import numpy as np
 from torch.autograd import Variable
-from hourglass_network import lane_detection_network
-from PI_DDRNet_slim import PI_DDRNet_slim
 from torch.autograd import Function as F
-from parameters import Parameters
+from src.data.parameters import Parameters
 from configs.parameters import OPTIMIZER_CFG, DATASET_CFG, TRAINER_CFG, LOSS_CFG
 import math
-import util
-import hard_sampling
-import os
-
+from src.data import util
+import sys, os
+# sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+from src.models.hourglass_network import lane_detection_network
+from src.models.backbones.util_hourglass import *
+from src.models.backbones import hard_sampling
+from src.models.PI_DDRNet_slim import PI_DDRNet_slim
+from src.models.PI_DDRNetSlim_modified import PI_DDRNetSlim
 ############################################################
 ##
 ## agent for lane detection
@@ -44,6 +45,7 @@ class ModelAgent(nn.Module):
 
         # self.lane_detection_network = lane_detection_network()
         self.lane_detection_network = PI_DDRNet_slim(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
+        # self.lane_detection_network = PI_DDRNetSlim(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
 
         self.setup_optimizer()
 
@@ -180,6 +182,7 @@ class ModelAgent(nn.Module):
         #util.visualize_gt(ground_truth_point[0], ground_truth_instance[0], inputs[0])
 
         # update lane_detection_network
+        print(f"Input Type >>>> {type(inputs[0])}")
         result, attentions = self.predict_lanes(inputs)
         lane_detection_loss = 0
         exist_condidence_loss = 0
@@ -384,9 +387,9 @@ class ModelAgent(nn.Module):
     #####################################################
     ## Load save file
     #####################################################
-    def load_weights(self, epoch, loss):
+    def load_weights(self, weight_file):
         self.lane_detection_network.load_state_dict(
-            torch.load(self.p.model_path+str(epoch)+'_'+str(loss)+'_'+'lane_detection_network.pkl', map_location='cuda:0'),False
+            torch.load(weight_file, map_location='cuda:0'),False
         )
 
     #####################################################

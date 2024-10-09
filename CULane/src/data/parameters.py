@@ -10,7 +10,7 @@ class Parameters():
     l_rate = 0.001
     weight_decay=1e-5
     save_path = "savefile/"
-    model_path = "savefile/"
+    model_path = "pretrained_model/"
     batch_size = 1
     x_size = 512
     y_size = 256
@@ -51,6 +51,7 @@ class Parameters():
 
     # test parameter
     color = [(0,0,0), (255,0,0), (0,255,0),(0,0,255),(255,255,0),(255,0,255),(0,255,255),(255,255,255),(100,255,0),(100,0,255),(255,100,0),(0,100,255),(255,0,100),(0,255,100)]
+    # color = [(255,0,0)]
     grid_location = np.zeros((grid_y, grid_x, 2))
     for y in range(grid_y):
         for x in range(grid_x):

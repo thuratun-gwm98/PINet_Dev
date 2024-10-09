@@ -7,16 +7,19 @@
 import cv2
 import torch
 import visdom
-#import sys
+import os, sys
 #sys.path.append('/home/kym/research/autonomous_car_vision/lanedection/code/')
-import model_helper
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
+sys.path.append(ROOT_DIR)
+from src.models import model_helper
 import numpy as np
-from data_loader import DataGenerator
-from parameters import Parameters
+from src.data.data_loader import DataGenerator
+from src.data.parameters import Parameters
 from configs.parameters import TRAINER_CFG
 import test
 import evaluation
-import util
+from src.data import util
 import os
 import copy
 
@@ -77,8 +80,9 @@ def Training():
     for epoch in range(train_cfg['n_epoch']):
         lane_model.training_mode()
         for inputs, target_lanes, target_h, test_image, data_list in loader.Generate(sampling_list):
-
-            #util.visualize_points(inputs[0], target_lanes[0], target_h[0])
+            print(f"Inputss >>> {len(inputs)}")
+            print(f"DataList >>> {len(data_list)}")
+            util.visualize_points(inputs[0], target_lanes[0], target_h[0])
             #training
             print("epoch : " + str(epoch))
             print("step : " + str(step))
@@ -103,7 +107,7 @@ def Training():
         lane_model.sample_reset()
 
         #evaluation
-        if epoch==0 or (epoch+1)%5==0:
+        if epoch==0 or (epoch+1)%10==0:
             print("evaluation")
             lane_model.evaluate_mode()
             th_list = [0.9]
@@ -132,4 +136,3 @@ def testing(lane_model, test_image, step, loss):
     
 if __name__ == '__main__':
     Training()
-

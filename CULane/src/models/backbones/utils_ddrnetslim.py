@@ -9,7 +9,6 @@ from collections import OrderedDict
 BatchNorm2d = nn.BatchNorm2d
 bn_mom = 0.1
 
-
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
@@ -94,20 +93,20 @@ class Bottleneck(nn.Module):
 class DAPPM(nn.Module):
     def __init__(self, inplanes, branch_planes, outplanes):
         super(DAPPM, self).__init__()
-        self.scale1 = nn.Sequential(# nn.AvgPool2d(kernel_size=5, stride=2, padding=2),
-                                    nn.Conv2d(inplanes, inplanes, kernel_size=5, stride=2, padding=2, bias=False),
+        self.scale1 = nn.Sequential(nn.AvgPool2d(kernel_size=5, stride=2, padding=2),
+                                    # nn.Conv2d(inplanes, inplanes, kernel_size=5, stride=2, padding=2, bias=False),
                                     BatchNorm2d(inplanes, momentum=bn_mom),
                                     nn.ReLU(inplace=True),
                                     nn.Conv2d(inplanes, branch_planes, kernel_size=1, bias=False),
                                     )
-        self.scale2 = nn.Sequential(# nn.AvgPool2d(kernel_size=9, stride=4, padding=4),
-                                    nn.Conv2d(inplanes, inplanes, kernel_size=9, stride=4, padding=4, bias=False),
+        self.scale2 = nn.Sequential(nn.AvgPool2d(kernel_size=9, stride=4, padding=4),
+                                    # nn.Conv2d(inplanes, inplanes, kernel_size=9, stride=4, padding=4, bias=False),
                                     BatchNorm2d(inplanes, momentum=bn_mom),
                                     nn.ReLU(inplace=True),
                                     nn.Conv2d(inplanes, branch_planes, kernel_size=1, bias=False),
                                     )
-        self.scale3 = nn.Sequential(# nn.AvgPool2d(kernel_size=17, stride=8, padding=8),
-                                    nn.Conv2d(inplanes, inplanes, kernel_size=17, stride=8, padding=8, bias=False),
+        self.scale3 = nn.Sequential(nn.AvgPool2d(kernel_size=17, stride=8, padding=8),
+                                    # nn.Conv2d(inplanes, inplanes, kernel_size=17, stride=8, padding=8, bias=False),
                                     BatchNorm2d(inplanes, momentum=bn_mom),
                                     nn.ReLU(inplace=True),
                                     nn.Conv2d(inplanes, branch_planes, kernel_size=1, bias=False),
@@ -156,12 +155,12 @@ class DAPPM(nn.Module):
 
     def forward(self, x):
 
-        print(f"In DAPPM >>>>>>>>>")
-        print(f"Input Shape >>>> {x.shape}")
-        print(f"Scale1 ---> {self.scale1(x).shape}")
-        print(f"Scale2 ---> {self.scale2(x).shape}")
-        print(f"Scale3 ---> {self.scale3(x).shape}")
-        print(f"Scale4 ---> {self.scale4(x).shape}")
+        # print(f"In DAPPM >>>>>>>>>")
+        # print(f"Input Shape >>>> {x.shape}")
+        # print(f"Scale1 ---> {self.scale1(x).shape}")
+        # print(f"Scale2 ---> {self.scale2(x).shape}")
+        # print(f"Scale3 ---> {self.scale3(x).shape}")
+        # print(f"Scale4 ---> {self.scale4(x).shape}")
 
         #x = self.downsample(x)
         width = x.shape[-1]
@@ -199,7 +198,7 @@ class DAPPM(nn.Module):
         #                 mode='bilinear')+x_list[3])))
        
         out = self.compression(torch.cat(x_list, 1)) + self.shortcut(x)
-        return out 
+        return out
 
 
 class segmenthead(nn.Module):

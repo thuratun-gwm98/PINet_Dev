@@ -5,7 +5,7 @@
 #########################################################################
 import torch
 import torch.nn as nn
-from parameters import Parameters
+from src.data.parameters import Parameters
 
 p = Parameters()
 
@@ -25,7 +25,7 @@ class Conv2D_BatchNorm_Relu(nn.Module):
             self.cbr_unit = nn.Sequential(nn.Conv2d(in_channels, n_filters, k_size, 
                                                     padding=padding, stride=stride, bias=bias, dilation=dilation),
                                     nn.BatchNorm2d(n_filters),
-                                    #nn.ReLU(inplace=True),)
+                                    # nn.ReLU(inplace=True),)
                                     nn.PReLU(),)
         else:
             self.cbr_unit = nn.Conv2d(in_channels, n_filters, k_size, padding=padding, stride=stride, bias=bias, dilation=dilation)

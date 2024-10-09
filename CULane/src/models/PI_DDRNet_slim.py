@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
-from utils_ddrnetslim import *
-from util_hourglass import *
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+from src.models.backbones.utils_ddrnetslim import *
+from src.models.backbones.util_hourglass import *
 
 class PI_DDRNetSL(nn.Module):
     def __init__(self, block, layers, planes=64, spp_planes=128, head_planes=128, input_re=True):
@@ -106,8 +108,6 @@ class PI_DDRNetSL(nn.Module):
 
         return nn.Sequential(*layers)
 
-        
-
     def forward(self, inputs):
         
         # TO DO: Here will be DDRNet_slim's backbone + neck
@@ -142,7 +142,7 @@ class PI_DDRNetSL(nn.Module):
         x = x + self.down3(self.relu(x_))
         # print(f"After Down3 layer3_bar + layer3 out, x is>> {x.shape}")
 
-        print(f"Interpolate 1 >>> {self.compression3(self.relu(layers[2])).shape}")
+        # print(f"Interpolate 1 >>> {self.compression3(self.relu(layers[2])).shape}")
         x_ = x_ + F.interpolate(
                         self.compression3(self.relu(layers[2])),
                         size=[height_output, width_output],
@@ -158,7 +158,7 @@ class PI_DDRNetSL(nn.Module):
 
         features = self.layer4(self.relu(x))            # [4, 256, 24, 60]
         layers.append(x)
-        print(f"After layer4, Features x is ----->>>> {features.shape} ")
+        # print(f"After layer4, Features x is ----->>>> {features.shape} ")
 
         # return x
 
@@ -189,7 +189,7 @@ class PI_DDRNetSL(nn.Module):
         #                 scale_factor=(8, 8),
         #                 mode='bilinear')
         
-        print(f"Feature Out >>> {features_out.shape}")          # [4, 128, 96, 240]
+        # print(f"Feature Out >>> {features_out.shape}")          # [4, 128, 96, 240]
 
         ### PINet Heads
         # print(f"HeadIn Info : >>> {self.out_confidence}")
@@ -200,9 +200,9 @@ class PI_DDRNetSL(nn.Module):
         out_offset = self.out_offset(features_out)
         out_instance = self.out_instance(features_out)
 
-        print(f"Out Confidence Shape ----->>> {out_confidence.shape}")
-        print(f"Out Offset Shapte ----->>> {out_offset.shape}")
-        print(f"Out Inshtance ---->>> {out_instance.shape}")
+        # print(f"Out Confidence Shape ----->>> {out_confidence.shape}")
+        # print(f"Out Offset Shapte ----->>> {out_offset.shape}")
+        # print(f"Out Inshtance ---->>> {out_instance.shape}")
         results = [out_confidence, out_offset, out_instance]
         # out = self.relu(self.bn(out_confidence))
         # out = self.convout(out)
@@ -238,11 +238,20 @@ def PI_DDRNet_slim(weight, pretrained=False):
         print(f"[INFO]: Pretrained weight loaded!")
         model.load_state_dict(model_dict, strict = False)
     return model
-    
+
+def ModelInitializer():
+    model = PI_DDRNetSL(
+        BasicBlock, 
+        [2, 2, 2, 2],  
+        planes=32, 
+        spp_planes=128, 
+        head_planes=128, 
+        )
+    return model
 
 if __name__ == "__main__":
     x = torch.ones((4, 3, 768, 1920)).float().cuda()
-    weight = "pretrained_model/DDRNet23s_imagenet.pth"
+    weight = "../pretrained_model/DDRNet23s_imagenet.pth"
     model = PI_DDRNet_slim(weight, pretrained=True).cuda()
     out, features = model(x)
     print(f"Number of Parameters ---> {sum(p.numel() for p in model.parameters() if p.requires_grad)}")

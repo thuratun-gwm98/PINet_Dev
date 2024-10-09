@@ -41,7 +41,8 @@ class DataGenerator(object):
     def __init__(self):
         # self.p = Parameters()
         self.dataset_cfg = DATASET_CFG
-        self.dataset_root = Path(self.dataset_cfg['dataset_root_dir'])
+        self.dataset_root = self.dataset_cfg['dataset_root_dir']
+        print(f"[Debug]: Dataset Root >>> {self.dataset_root}")
 
         # Train & Test Set
         self.train_set = os.path.join(self.dataset_root, f"list/train.txt")
@@ -69,13 +70,16 @@ class DataGenerator(object):
     #################################################################################################################
     def Generate(self, sampling_list = None): 
         cuts = [(b, min(b + self.dataset_cfg["batch_size"], self.size_train)) for b in range(0, self.size_train, self.dataset_cfg["batch_size"])]
+        print(f"Cuts >>> {cuts}")
         random.shuffle(self.train_data)
         random.shuffle(self.train_data)
         random.shuffle(self.train_data)
         for start, end in cuts:
+            print(f"Start >>> {start}")
+            print(f"End >>> {end}")
             # resize original image to 512*256
             self.inputs, self.target_lanes, self.target_h, self.test_image, self.data_list = self.Resize_data(start, end, sampling_list)
-            
+            # print(f"INputsss >>> {type(self.inputs)}")
             self.actual_batchsize = self.inputs.shape[0]
             self.Flip()
             self.Translation()
@@ -83,6 +87,8 @@ class DataGenerator(object):
             self.Gaussian()
             self.Change_intensity()
             self.Shadow()
+
+            print(f"Inputtss >>> {self.inputs[0].shape}")
 
             yield self.inputs/255.0, self.target_lanes, self.target_h, self.test_image/255.0, self.data_list  # generate normalized image
 
@@ -109,12 +115,13 @@ class DataGenerator(object):
             test_img = self.test_data[i]
             # print(f"[Debug] Data:: {data}")
             # image_path = os.path.join(self.dataset_root, Path(data))
-            image_path = os.path.join(self.dataset_root, test_img[0:-1])
+            test_image_path = self.dataset_root + '/' + test_img[0:-1]
+            # image_path = os.path.join(self.dataset_root, test_img[0:-1])
             # img_pth = self.p.test_root_url+data[1:-1]
             # print(os.path.exists(img_pth))
             # temp_image_d = cv2.imread(self.p.test_root_url+data[0:-1])
             # print(temp_image_d.shape)
-            temp_image = cv2.imread(image_path)
+            temp_image = cv2.imread(test_image_path)
             original_size_x = temp_image.shape[1]
             original_size_y = temp_image.shape[0]
             ratio_w = self.dataset_cfg['img_width']*1.0/temp_image.shape[1]
@@ -127,11 +134,12 @@ class DataGenerator(object):
             temp_h = []
 
             # annoatation = self.p.test_root_url+test_img[0:-4]+"lines.txt"
-            annoatation = os.path.join(self.dataset_root, f"{test_img[0:-4]}lines.txt")
+            # annoatation = os.path.join(self.dataset_root, f"{test_img[0:-4]}lines.txt")
+            annotation = self.dataset_root + '/' + f"{test_img[0:-4]}lines.txt"
             # print(f"[debug]: Annotation >> {annoatation}")
 
             # print(f"[Debug]: annotation >>> {annoatation}")
-            with open(annoatation) as f:
+            with open(annotation) as f:
                 annoatation_data = f.readlines()
             # print(f"[Debug]: test annotation data_j >>> {annoatation_data}")
             for j in annoatation_data:
@@ -168,7 +176,8 @@ class DataGenerator(object):
 
         # choose data from each number of lanes
         for i in range(start, end):
-
+            print(f"Start >> {start}")
+            print(f"End >>> {end}")
             if sampling_list == None:
                 train_img = random.sample(self.train_data, 1)[0]
                 #data = self.train_data[0]
@@ -187,8 +196,20 @@ class DataGenerator(object):
 
             # train set image
             # print(f"Data >>> {train_img[0:-1]}")
+            # print(f"[Debug]: Dataset Root 2 >> {self.dataset_root}")
+            # print(f"[Debug]: Temp Image Path : {self.dataset_root + train_img[0:-1]}")
             
-            temp_image = cv2.imread(os.path.join(self.dataset_root, train_img[0:-1]))
+            # temp_image = cv2.imread(os.path.join(self.dataset_root, train_img[0:-1]))
+            # print(f"Train Img >> {train_img}")
+            
+            train_img_pth = train_img.strip()
+            # print(f"Train Img Path >>> {train_img_pth}")
+            ext_idx = train_img_pth.find('.png')
+            train_img_fp = train_img_pth[:ext_idx + 4]
+            # print(f"Train Img :: >> {self.dataset_root + '/' + train_img_fp}")
+            train_img_path = self.dataset_root + '/' + train_img_fp
+            temp_image = cv2.imread(train_img_path)
+            
             if i==start:
                 print(train_img[1:-1])
             original_size_x = temp_image.shape[1]
@@ -202,7 +223,8 @@ class DataGenerator(object):
             temp_h = []
 
             # annoatation = self.p.train_root_url+data[0:-4]+"lines.txt"
-            annotation = os.path.join(self.dataset_root, f"{train_img[0:-4]}lines.txt")
+            # annotation = os.path.join(self.dataset_root, f"{train_img[0:-4]}lines.txt")
+            annotation = self.dataset_root + '/' + f"{train_img_pth[:ext_idx]}.lines.txt"
             with open(annotation) as f:
                 annoatation_data = f.readlines()         
 
@@ -224,14 +246,17 @@ class DataGenerator(object):
                 temp_h.append( h*ratio_h )
             target_lanes.append(np.array(temp_lanes))
             target_h.append(np.array(temp_h))
+        
 
         #test set image
         test_index = random.randrange(0, self.size_test-1)
         # test_image = cv2.imread(self.p.test_root_url+self.test_data[test_index][1:-1])
-        train_image = cv2.imread(os.path.join(self.dataset_root, self.test_data[test_index][0:-1]))
-        train_image = cv2.resize(train_image, (self.dataset_cfg['img_width'],self.dataset_cfg['img_height']))
+        # train_image = cv2.imread(os.path.join(self.dataset_root, self.test_data[test_index][0:-1]))
+        train_immage_path = self.dataset_root + '/' + self.test_data[test_index][0:-1]
+        test_image = cv2.imread(train_immage_path)
+        test_image = cv2.resize(test_image, (self.dataset_cfg['img_width'],self.dataset_cfg['img_height']))
         
-        return np.array(inputs), target_lanes, target_h, np.rollaxis(train_image, axis=2, start=0), data_list
+        return np.array(inputs), target_lanes, target_h, np.rollaxis(test_image, axis=2, start=0), data_list
 
     def make_dense_x(self, l, h):
         out_x = []
