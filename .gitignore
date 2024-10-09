@@ -5,4 +5,6 @@ CULane/test_out
 CULane/test_result
 CULane/output_match
 CULane/pretrained_model
+CULane/infer_output
+CULane/utils_tools
 PINet_Experiment.ipynb
