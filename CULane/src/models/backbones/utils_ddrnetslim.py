@@ -155,12 +155,13 @@ class DAPPM(nn.Module):
 
     def forward(self, x):
 
-        # print(f"In DAPPM >>>>>>>>>")
-        # print(f"Input Shape >>>> {x.shape}")
-        # print(f"Scale1 ---> {self.scale1(x).shape}")
-        # print(f"Scale2 ---> {self.scale2(x).shape}")
-        # print(f"Scale3 ---> {self.scale3(x).shape}")
-        # print(f"Scale4 ---> {self.scale4(x).shape}")
+        print(f"In DAPPM >>>>>>>>>")
+        print(f"Input Shape >>>> {x.shape}")
+        print(f"Scale0 ---> {self.scale0(x).shape}")
+        print(f"Scale1 ---> {self.scale1(x).shape}")
+        print(f"Scale2 ---> {self.scale2(x).shape}")
+        print(f"Scale3 ---> {self.scale3(x).shape}")
+        print(f"Scale4 ---> {self.scale4(x).shape}")
 
         #x = self.downsample(x)
         width = x.shape[-1]
@@ -181,13 +182,15 @@ class DAPPM(nn.Module):
         # x_list.append((self.process2((F.interpolate(self.scale2(x),
         #                 scale_factor=(4, 3.75),
         #                 mode='bilinear')+x_list[0]))))
-
+        print(f"Process 2 Size >>> {x_list[2].shape}")
+        
         x_list.append(self.process3((F.interpolate(self.scale3(x),
                         size=[height, width],
                         mode='bilinear')+x_list[2])))
         # x_list.append(self.process3((F.interpolate(self.scale3(x),
         #                 scale_factor=(6, 7.5),
         #                 mode='bilinear')+x_list[2])))
+        print(f"Process 3 Size >>> {x_list[3].shape}")
         
 
         x_list.append(self.process4((F.interpolate(self.scale4(x),
@@ -196,6 +199,9 @@ class DAPPM(nn.Module):
         # x_list.append(self.process4((F.interpolate(self.scale4(x),
         #                 scale_factor=(12, 15),
         #                 mode='bilinear')+x_list[3])))
+
+        print(f"Shortcut X ----> {self.shortcut(x).shape}")
+        print(f"Compression -----> {self.compression(torch.cat(x_list, 1)).shape}")
        
         out = self.compression(torch.cat(x_list, 1)) + self.shortcut(x)
         return out

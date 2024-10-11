@@ -44,8 +44,8 @@ class ModelAgent(nn.Module):
 
 
         # self.lane_detection_network = lane_detection_network()
-        self.lane_detection_network = PI_DDRNet_slim(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
-        # self.lane_detection_network = PI_DDRNetSlim(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
+        # self.lane_detection_network = PI_DDRNet_slim(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
+        self.lane_detection_network = PI_DDRNetSlim(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
 
         self.setup_optimizer()
 

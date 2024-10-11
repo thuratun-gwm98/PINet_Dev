@@ -82,7 +82,7 @@ def Training():
         for inputs, target_lanes, target_h, test_image, data_list in loader.Generate(sampling_list):
             print(f"Inputss >>> {len(inputs)}")
             print(f"DataList >>> {len(data_list)}")
-            util.visualize_points(inputs[0], target_lanes[0], target_h[0])
+            # util.visualize_points(inputs[0], target_lanes[0], target_h[0])
             #training
             print("epoch : " + str(epoch))
             print("step : " + str(step))
