@@ -6,6 +6,7 @@
 
 import torch.nn as nn
 import torch
+from torch.cuda.amp import autocast
 from copy import deepcopy
 import numpy as np
 from torch.autograd import Variable
@@ -20,7 +21,9 @@ from src.models.hourglass_network import lane_detection_network
 from src.models.backbones.util_hourglass import *
 from src.models.backbones import hard_sampling
 from src.models.PI_DDRNet_slim import PI_DDRNet_slim
-from src.models.PI_DDRNetSlim_modified import PI_DDRNetSlim
+from src.models.PI_DDRNetSlim_modified import PIDDRNetSlim1
+from src.models.PI_DDRNetSlim_modified import PIDDRNetSlim2
+
 ############################################################
 ##
 ## agent for lane detection
@@ -39,13 +42,15 @@ class ModelAgent(nn.Module):
         self.optimizer_cfg = OPTIMIZER_CFG
         self.trainer_cfg = TRAINER_CFG
 
-        self.grid_x = self.dataset_cfg["img_width"]//self.dataset_cfg["resize_ratio"]
-        self.grid_y = self.dataset_cfg["img_height"]//self.dataset_cfg["resize_ratio"]
+        self.grid_x = self.dataset_cfg["img_width"]//self.dataset_cfg["width_ratio"]       # 64
+        self.grid_y = self.dataset_cfg["img_height"]//self.dataset_cfg["height_ratio"]      # 32
 
+        print(f"Grid x >>> {self.grid_x}")
+        print(f"Grid y >>> {self.grid_y}")
 
         # self.lane_detection_network = lane_detection_network()
         # self.lane_detection_network = PI_DDRNet_slim(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
-        self.lane_detection_network = PI_DDRNetSlim(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
+        self.lane_detection_network = PIDDRNetSlim1(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
 
         self.setup_optimizer()
 
@@ -79,11 +84,11 @@ class ModelAgent(nn.Module):
             for lane_index, lane in enumerate(batch):
                 for point_index, point in enumerate(lane):
                     if point > 0:
-                        x_index = int(point/self.dataset_cfg["resize_ratio"])
-                        y_index = int(target_h[batch_index][lane_index][point_index]/self.dataset_cfg["resize_ratio"])
+                        x_index = int(point/self.dataset_cfg["width_ratio"])
+                        y_index = int(target_h[batch_index][lane_index][point_index]/self.dataset_cfg["height_ratio"])
                         ground[batch_index][0][y_index][x_index] = 1.0
-                        ground[batch_index][1][y_index][x_index]= (point*1.0/self.dataset_cfg["resize_ratio"]) - x_index
-                        ground[batch_index][2][y_index][x_index] = (target_h[batch_index][lane_index][point_index]*1.0/self.dataset_cfg["resize_ratio"]) - y_index
+                        ground[batch_index][1][y_index][x_index]= (point*1.0/self.dataset_cfg["width_ratio"]) - x_index
+                        ground[batch_index][2][y_index][x_index] = (target_h[batch_index][lane_index][point_index]*1.0/self.dataset_cfg["height_ratio"]) - y_index
                         ground_binary[batch_index][0][y_index][x_index] = 1
 
         return ground, ground_binary
@@ -104,8 +109,8 @@ class ModelAgent(nn.Module):
                 previous_y_index = 0
                 for point_index, point in enumerate(lane):
                     if point > 0:
-                        x_index = int(point/self.dataset_cfg["resize_ratio"])
-                        y_index = int(target_h[batch_index][lane_index][point_index]/self.dataset_cfg["resize_ratio"])
+                        x_index = int(point/self.dataset_cfg["width_ratio"])
+                        y_index = int(target_h[batch_index][lane_index][point_index]/self.dataset_cfg["height_ratio"])
                         temp[0][y_index][x_index] = lane_cluster
                     if previous_x_index != 0 or previous_y_index != 0: #interpolation make more dense data
                         temp_x = previous_x_index
@@ -196,10 +201,11 @@ class ModelAgent(nn.Module):
         # hard sampling ##################################################################
         confidance, offset, feature = result[-1]
         hard_loss = 0
-
+        print(f"Confidence Shape >>> {confidance.shape}")
         for i in range(real_batch_size):
             confidance_gt = ground_truth_point[i, 0, :, :]
             confidance_gt = confidance_gt.view(1, self.grid_y, self.grid_x)
+            print(f"Confidece Gt SHape >> {confidance_gt.shape}")
             hard_loss =  hard_loss +\
                 torch.sum( (1-confidance[i][confidance_gt==1])**2 )/\
                 (torch.sum(confidance_gt==1)+1)
@@ -244,14 +250,16 @@ class ModelAgent(nn.Module):
 				        (torch.sum(confidance_gt==1)+1)
 
             #compute loss for similarity #################
-            feature_map = feature.view(real_batch_size, self.trainer_cfg["feature_size"], 1, self.grid_y*self.grid_x)
-            feature_map = feature_map.expand(real_batch_size, self.trainer_cfg["feature_size"], self.grid_y*self.grid_x, self.grid_y*self.grid_x)#.detach()
+            with autocast():
+                feature_map = feature.view(real_batch_size, self.trainer_cfg["feature_size"], 1, self.grid_y*self.grid_x)
+                feature_map = feature_map.expand(real_batch_size, self.trainer_cfg["feature_size"], self.grid_y*self.grid_x, self.grid_y*self.grid_x)#.detach()
 
-            point_feature = feature.view(real_batch_size, self.trainer_cfg["feature_size"], self.grid_y*self.grid_x,1)
-            point_feature = point_feature.expand(real_batch_size, self.trainer_cfg["feature_size"], self.grid_y*self.grid_x, self.grid_y*self.grid_x)#.detach()
-
-            distance_map = (feature_map-point_feature)**2 
-            distance_map = torch.sum( distance_map, dim=1 ).view(real_batch_size, 1, self.grid_y*self.grid_x, self.grid_y*self.grid_x)
+                point_feature = feature.view(real_batch_size, self.trainer_cfg["feature_size"], self.grid_y*self.grid_x,1)
+                point_feature = point_feature.expand(real_batch_size, self.trainer_cfg["feature_size"], self.grid_y*self.grid_x, self.grid_y*self.grid_x)#.detach()
+                print(f"Feature Map Shape >>> {feature_map.shape}")
+                print(f"Point Feature Shape >>> {point_feature.shape}")
+                distance_map = (feature_map-point_feature)**2
+                distance_map = torch.sum( distance_map, dim=1 ).view(real_batch_size, 1, self.grid_y*self.grid_x, self.grid_y*self.grid_x)
 
             # same instance
             sisc_loss = sisc_loss+\

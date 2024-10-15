@@ -1,9 +1,10 @@
 dataset:
   dataset_root_dir: 'dataset/small-client'
-  batch_size: 2
+  batch_size: 4
   img_width: 1920  # 1920
   img_height: 768  # 768
-  resize_ratio: 8
+  width_ratio: 30
+  height_ratio: 24
   
   flip_ratio: 0.6
   translation_ratio: 0.6

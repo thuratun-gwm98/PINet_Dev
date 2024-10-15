@@ -161,7 +161,7 @@ class DAPPM(nn.Module):
         print(f"Scale1 ---> {self.scale1(x).shape}")
         print(f"Scale2 ---> {self.scale2(x).shape}")
         print(f"Scale3 ---> {self.scale3(x).shape}")
-        print(f"Scale4 ---> {self.scale4(x).shape}")
+        # print(f"Scale4 ---> {self.scale4(x).shape}")
 
         #x = self.downsample(x)
         width = x.shape[-1]

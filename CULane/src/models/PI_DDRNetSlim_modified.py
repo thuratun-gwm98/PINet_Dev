@@ -10,7 +10,7 @@ from src.models.backbones.utils_ddrnetslim_modified import (
     BatchNorm2d,
     bn_mom
 )
-from src.models.backbones.util_hourglass import Output, p
+from src.models.backbones.util_hourglass import PIOutput, p
 
 class PI_DDRNetSL(nn.Module):
     def __init__(self, block, layers, planes=64, spp_planes=128, head_planes=128, input_re=True):
@@ -64,16 +64,17 @@ class PI_DDRNetSL(nn.Module):
 
         self.layer5_ = self._make_layer(Bottleneck, highres_planes, highres_planes, 1)
 
-        self.layer5 =  self._make_layer(Bottleneck, planes * 8, planes * 8, 1, stride=2)
-        # self.layer5 =  self._make_layer5(Bottleneck, planes * 8, planes * 8, 1, kernel_size=3, stride=3)
+        # self.layer5 =  self._make_layer(Bottleneck, planes * 8, planes * 8, 1, stride=2)
+        self.layer5 =  self._make_layer5(Bottleneck, planes * 8, planes * 8, 1, kernel_size=3, stride=2, padding=1)
 
-        self.spp = DAPPM(planes * 16, spp_planes, planes * 4)
-        
+        # self.spp = DAPPM(planes * 16, spp_planes, planes * 4)   # 32*4->128, 16*4->64 (16*8)
+        self.spp = DAPPM(planes * 16, spp_planes, head_planes)
+
         self.headIn = nn.Conv2d(head_planes, head_planes, 1, padding=0, stride=1, bias=True, dilation=1)
 
-        self.out_confidence = Output(head_planes, 1)     
-        self.out_offset = Output(head_planes, 2)      
-        self.out_instance = Output(head_planes, p.feature_size)
+        self.out_confidence = PIOutput(head_planes, 1)     
+        self.out_offset = PIOutput(head_planes, 2)      
+        self.out_instance = PIOutput(head_planes, p.feature_size)
 
         self.input_re = input_re
         self.relu = nn.ReLU()
@@ -105,15 +106,18 @@ class PI_DDRNetSL(nn.Module):
         if stride != 1 or inplanes != planes * block.expansion:
             print(f"Stride {stride} | KernelSize: {kernel_size} | PaddingSize {padding}")
             downsample = nn.Sequential(
-                nn.Conv2d(inplanes, planes * block.expansion,
-                          kernel_size=kernel_size, stride=stride, padding=padding, bias=False),
+                nn.Conv2d(inplanes, planes,
+                          kernel_size=3, stride=2, padding=3, bias=False),
+                nn.BatchNorm2d(planes, momentum=bn_mom),
+                nn.Conv2d(planes, planes * block.expansion,
+                          kernel_size=1, stride=1, padding=(1, 0), bias=False),
                 nn.BatchNorm2d(planes * block.expansion, momentum=bn_mom),
-            )       # 8, 20
+            )       # [4, 512, 16, 32]
 
         print(f"DownSample >>> {downsample}")
 
         layers = []
-        layers.append(block(inplanes, planes, stride, padding, downsample))
+        layers.append(block(inplanes, planes, stride, padding=(2, 1), downsample=downsample))
         inplanes = planes * block.expansion
         for i in range(1, blocks):
             if i == (blocks-1):
@@ -127,8 +131,11 @@ class PI_DDRNetSL(nn.Module):
     def forward(self, inputs):
         
         # TO DO: Here will be DDRNet_slim's backbone + neck
+        
         width_output = inputs.shape[-1] // 8
         height_output = inputs.shape[-2] // 8
+        print(f"Scaled Width >>>> {width_output}")
+        print(f"height Output >>>> {height_output}")
         layers = []
 
         x = self.conv1(inputs)                      # 1, 32, 192, 480
@@ -159,7 +166,7 @@ class PI_DDRNetSL(nn.Module):
         x = x + self.down3(self.relu(x_))
         # print(f"After Down3 layer3_bar + layer3 out, x is>> {x.shape}")
 
-        # print(f"Interpolate 1 >>> {self.compression3(self.relu(layers[2])).shape}")
+        print(f"Interpolate 1 >>> {self.compression3(self.relu(layers[1])).shape}")
     
         x_ = x_ + F.interpolate(
                         self.compression3(self.relu(layers[1])),
@@ -203,10 +210,11 @@ class PI_DDRNetSL(nn.Module):
         # scaled_x = F.interpolate(x, )
         # print(f"Layer 5 info >>>> {self.layer5}")
         print(f"Dim after Layer5 ---> {self.layer5(self.relu(x)).shape}")
+        print(f"Dim after SPP ---> {self.spp(self.layer5(self.relu(x))).shape}")
         # print(f"Layer SPP info ----> {self.spp}")
         features_out = F.interpolate(
                         self.spp(self.layer5(self.relu(x))),
-                        scale_factor=(8, 8),
+                        scale_factor=(2, 2),
                         mode='bilinear')
         
         print(f"Feature Out >>> {features_out.shape}")          # [4, 128, 96, 240]
@@ -220,12 +228,38 @@ class PI_DDRNetSL(nn.Module):
         out_offset = self.out_offset(features_out)
         out_instance = self.out_instance(features_out)
 
+        print(f"Out Confidence Shape ----->>> {out_confidence.shape}")
+        print(f"Out Offset Shapte ----->>> {out_offset.shape}")
+        print(f"Out Inshtance ---->>> {out_instance.shape}")
+
         results = [out_confidence, out_offset, out_instance]
 
         return [results], [features]
     
 
-def PI_DDRNetSlim(weight, pretrained=False):
+def PIDDRNetSlim1(weight, pretrained=False):
+    model = PI_DDRNetSL(
+        BasicBlock, 
+        [2, 2, 2, 2],  
+        planes=32, 
+        spp_planes=128, 
+        head_planes=128, 
+        )
+    
+    if pretrained:
+        pretrained_state = torch.load(weight, map_location='cpu')
+        model_dict = model.state_dict()
+        pretrained_state = {
+            k: v
+            for k, v in pretrained_state.items()
+            if (k in model_dict and v.shape == model_dict[k].shape)
+        }
+        model_dict.update(pretrained_state)
+        print(f"[INFO]: Pretrained weight loaded!")
+        model.load_state_dict(model_dict, strict = False)
+    return model
+
+def PIDDRNetSlim2(weight, pretrained=False):
     model = PI_DDRNetSL(
         BasicBlock, 
         [2, 2, 2, 2],  
@@ -247,7 +281,17 @@ def PI_DDRNetSlim(weight, pretrained=False):
         model.load_state_dict(model_dict, strict = False)
     return model
 
-def ModelInitializer():
+def ModelInitializer1():
+    model = PI_DDRNetSL(
+        BasicBlock, 
+        [2, 2, 2, 2],  
+        planes=32, 
+        spp_planes=128, 
+        head_planes=128, 
+        )
+    return model
+
+def ModelInitializer2():
     model = PI_DDRNetSL(
         BasicBlock, 
         [2, 2, 2, 2],  

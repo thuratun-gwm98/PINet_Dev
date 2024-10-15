@@ -22,7 +22,7 @@ import evaluation
 from src.data import util
 import os
 import copy
-
+torch.cuda.empty_cache()
 p = Parameters()
 
 ###############################################################
@@ -80,12 +80,8 @@ def Training():
     for epoch in range(train_cfg['n_epoch']):
         lane_model.training_mode()
         for inputs, target_lanes, target_h, test_image, data_list in loader.Generate(sampling_list):
-            print(f"Inputss >>> {len(inputs)}")
-            print(f"DataList >>> {len(data_list)}")
             # util.visualize_points(inputs[0], target_lanes[0], target_h[0])
             #training
-            print("epoch : " + str(epoch))
-            print("step : " + str(step))
             loss_p = lane_model.train(inputs, target_lanes, target_h, epoch, lane_model, data_list)
             torch.cuda.synchronize()
             loss_p = loss_p.cpu().data
@@ -100,6 +96,7 @@ def Training():
             if epoch==0 or (epoch+1)%5==0:
                 # lane_model.save_model(epoch, loss_p)
                 step_ = f"{epoch}_{step}"
+                print(f"Test Image Shape >>> {test_image.shape}")
                 testing(lane_model, test_image, step_, loss_p)
             step += 1
 

@@ -189,7 +189,7 @@ class PI_DDRNetSL(nn.Module):
         #                 scale_factor=(8, 8),
         #                 mode='bilinear')
         
-        # print(f"Feature Out >>> {features_out.shape}")          # [4, 128, 96, 240]
+        print(f"Feature Out >>> {features_out.shape}")          # [4, 128, 96, 240]
 
         ### PINet Heads
         # print(f"HeadIn Info : >>> {self.out_confidence}")
@@ -200,9 +200,10 @@ class PI_DDRNetSL(nn.Module):
         out_offset = self.out_offset(features_out)
         out_instance = self.out_instance(features_out)
 
-        # print(f"Out Confidence Shape ----->>> {out_confidence.shape}")
-        # print(f"Out Offset Shapte ----->>> {out_offset.shape}")
-        # print(f"Out Inshtance ---->>> {out_instance.shape}")
+        print(f"Out Confidence Shape ----->>> {out_confidence.shape}")
+        print(f"Out Offset Shapte ----->>> {out_offset.shape}")
+        print(f"Out Inshtance ---->>> {out_instance.shape}")
+
         results = [out_confidence, out_offset, out_instance]
         # out = self.relu(self.bn(out_confidence))
         # out = self.convout(out)
