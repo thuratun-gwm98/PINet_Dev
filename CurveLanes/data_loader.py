@@ -54,7 +54,6 @@ class Generator(object):
 
 
         self.size_train = len(self.train_data)
-        print(self.size_train)
 
         # load test set
         self.test_data = []

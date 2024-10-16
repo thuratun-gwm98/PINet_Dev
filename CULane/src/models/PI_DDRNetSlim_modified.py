@@ -104,7 +104,6 @@ class PI_DDRNetSL(nn.Module):
     def _make_layer5(self, block, inplanes, planes, blocks, kernel_size=1, stride=1, padding=0):
         downsample = None
         if stride != 1 or inplanes != planes * block.expansion:
-            print(f"Stride {stride} | KernelSize: {kernel_size} | PaddingSize {padding}")
             downsample = nn.Sequential(
                 nn.Conv2d(inplanes, planes,
                           kernel_size=3, stride=2, padding=3, bias=False),
@@ -113,8 +112,6 @@ class PI_DDRNetSL(nn.Module):
                           kernel_size=1, stride=1, padding=(1, 0), bias=False),
                 nn.BatchNorm2d(planes * block.expansion, momentum=bn_mom),
             )       # [4, 512, 16, 32]
-
-        print(f"DownSample >>> {downsample}")
 
         layers = []
         layers.append(block(inplanes, planes, stride, padding=(2, 1), downsample=downsample))
@@ -134,8 +131,8 @@ class PI_DDRNetSL(nn.Module):
         
         width_output = inputs.shape[-1] // 8
         height_output = inputs.shape[-2] // 8
-        print(f"Scaled Width >>>> {width_output}")
-        print(f"height Output >>>> {height_output}")
+        # print(f"Scaled Width >>>> {width_output}")
+        # print(f"height Output >>>> {height_output}")
         layers = []
 
         x = self.conv1(inputs)                      # 1, 32, 192, 480
@@ -192,20 +189,7 @@ class PI_DDRNetSL(nn.Module):
         x = features + self.down4(self.relu(x_))
         # print(f"After Down 4 >>> {x.shape}")
 
-        # x_ = x_ + F.interpolate(
-        #                 self.compression4(self.relu(layers[3])),
-        #                 size=[height_output, width_output],
-        #                 mode='bilinear')                    # For Feature, We can get also from this
-
-        # print(f"After compression4, x_bar is {x_.shape}")
-
-        # x_ = self.layer5_(self.relu(x_))
-        # print(f"After Layer 5bar >> {x_.shape}")
-        # print(f"Interpolate 2 >>>> {self.spp(self.layer5(self.relu(x))).shape}")
-        # features_out = F.interpolate(
-        #                 self.spp(self.layer5(self.relu(x))),
-        #                 size=[height_output, width_output],
-        #                 mode='bilinear')
+        
         print(f"Dim to Layer5 ---> {x.shape}")
         # scaled_x = F.interpolate(x, )
         # print(f"Layer 5 info >>>> {self.layer5}")
@@ -221,7 +205,7 @@ class PI_DDRNetSL(nn.Module):
 
         ### PINet Heads
         # print(f"HeadIn Info : >>> {self.out_confidence}")
-        # outputs = self.headIn(features_out)
+        
         # print(f"Outputs Shape ---->>> {outputs.shape}")
 
         out_confidence = self.out_confidence(features_out)

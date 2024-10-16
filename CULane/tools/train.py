@@ -15,7 +15,7 @@ sys.path.append(ROOT_DIR)
 from src.models import model_helper
 import numpy as np
 from src.data.data_loader import DataGenerator
-from src.data.parameters import Parameters
+from src.data.data_parameters import Parameters
 from configs.parameters import TRAINER_CFG
 import test
 import evaluation

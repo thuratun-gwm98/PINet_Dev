@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import json
 import random
 from copy import deepcopy
-from parameters import Parameters
+from src.data.data_parameters import Parameters
 
 
 #########################################################################

@@ -42,7 +42,6 @@ class DataGenerator(object):
         # self.p = Parameters()
         self.dataset_cfg = DATASET_CFG
         self.dataset_root = self.dataset_cfg['dataset_root_dir']
-        print(f"[Debug]: Dataset Root >>> {self.dataset_root}")
 
         # Train & Test Set
         self.train_set = os.path.join(self.dataset_root, f"list/train.txt")
@@ -70,13 +69,10 @@ class DataGenerator(object):
     #################################################################################################################
     def Generate(self, sampling_list = None): 
         cuts = [(b, min(b + self.dataset_cfg["batch_size"], self.size_train)) for b in range(0, self.size_train, self.dataset_cfg["batch_size"])]
-        print(f"Cuts >>> {cuts}")
         random.shuffle(self.train_data)
         random.shuffle(self.train_data)
         random.shuffle(self.train_data)
         for start, end in cuts:
-            print(f"Start >>> {start}")
-            print(f"End >>> {end}")
             # resize original image to 512*256
             self.inputs, self.target_lanes, self.target_h, self.test_image, self.data_list = self.Resize_data(start, end, sampling_list)
             # print(f"INputsss >>> {type(self.inputs)}")
@@ -87,8 +83,6 @@ class DataGenerator(object):
             self.Gaussian()
             self.Change_intensity()
             self.Shadow()
-
-            print(f"Inputtss >>> {self.inputs[0].shape}")
 
             yield self.inputs/255.0, self.target_lanes, self.target_h, self.test_image/255.0, self.data_list  # generate normalized image
 
@@ -176,8 +170,6 @@ class DataGenerator(object):
 
         # choose data from each number of lanes
         for i in range(start, end):
-            print(f"Start >> {start}")
-            print(f"End >>> {end}")
             if sampling_list == None:
                 train_img = random.sample(self.train_data, 1)[0]
                 #data = self.train_data[0]
@@ -210,8 +202,8 @@ class DataGenerator(object):
             train_img_path = self.dataset_root + '/' + train_img_fp
             temp_image = cv2.imread(train_img_path)
             
-            if i==start:
-                print(train_img[1:-1])
+            # if i==start:
+            #     print(train_img[1:-1])
             original_size_x = temp_image.shape[1]
             original_size_y = temp_image.shape[0]
             ratio_w = self.dataset_cfg['img_width']*1.0/temp_image.shape[1]

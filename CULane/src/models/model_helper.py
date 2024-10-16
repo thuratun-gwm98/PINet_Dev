@@ -11,7 +11,7 @@ from copy import deepcopy
 import numpy as np
 from torch.autograd import Variable
 from torch.autograd import Function as F
-from src.data.parameters import Parameters
+from src.data.data_parameters import Parameters
 from configs.parameters import OPTIMIZER_CFG, DATASET_CFG, TRAINER_CFG, LOSS_CFG
 import math
 from src.data import util

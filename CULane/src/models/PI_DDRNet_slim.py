@@ -115,9 +115,6 @@ class PI_DDRNetSL(nn.Module):
         height_output = inputs.shape[-2] // 8
         layers = []
 
-        print(f"Model Input Width >> {width_output}")
-        print(f"Model Input Height >> {height_output}")
-
         x = self.conv1(inputs)
 
         # print(f"After Conv1 >> {x.shape}")

@@ -5,7 +5,7 @@
 #########################################################################
 import torch
 import torch.nn as nn
-from src.data.parameters import Parameters
+from src.data.data_parameters import Parameters
 
 p = Parameters()
 
@@ -318,7 +318,6 @@ class hourglass_block(nn.Module):
         ### Neck ###
         print(f"Neck Output Shape: {outputs_a.shape}")
 
-        print(f"ConvLayer after Neck Out Info {self.re2}")
         outputs = self.re2(outputs_a)
         print(f"[Debug]: Output Shape ---> {outputs.shape}")
         

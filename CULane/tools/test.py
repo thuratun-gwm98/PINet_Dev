@@ -11,7 +11,7 @@ from src.models import model_helper
 import numpy as np
 from copy import deepcopy
 import time
-from src.data.parameters import Parameters
+from src.data.data_parameters import Parameters
 from src.data import util
 import os
 from pathlib import Path
@@ -19,11 +19,11 @@ from tqdm import tqdm
 from sklearn.linear_model import LinearRegression
 from patsy import cr
 import csaps
-
+from configs.parameters import DATASET_CFG
 from src.data.data_loader import DataGenerator
 
 p = Parameters()
-
+dataset_cfg = DATASET_CFG
 ###############################################################
 ##
 ## Training
@@ -277,6 +277,9 @@ def save_result(result_data, fname):
 ############################################################################
 def test(lane_agent, test_images, thresh = p.threshold_point, index= -1):
 
+    grid_x = dataset_cfg["img_width"]//dataset_cfg["width_ratio"]       # 64
+    grid_y = dataset_cfg["img_height"]//dataset_cfg["height_ratio"]     # 32
+
     result = lane_agent.predict_lanes_test(test_images)
     torch.cuda.synchronize()
     confidences, offsets, instances = result[index]
@@ -294,7 +297,7 @@ def test(lane_agent, test_images, thresh = p.threshold_point, index= -1):
         image =  np.rollaxis(image, axis=2, start=0)*255.0
         image = image.astype(np.uint8).copy()
 
-        confidence = confidences[i].view(p.grid_y, p.grid_x).cpu().data.numpy()
+        confidence = confidences[i].view(grid_y, grid_x).cpu().data.numpy()
 
         offset = offsets[i].cpu().data.numpy()
         offset = np.rollaxis(offset, axis=2, start=0)
@@ -352,8 +355,8 @@ def generate_result(confidance, offsets,instance, thresh, image):
     y = []
     for i in range(len(grid)):
         if (np.sum(feature[i]**2))>=0:
-            point_x = int((offset[i][0]+grid[i][0])*p.resize_ratio)
-            point_y = int((offset[i][1]+grid[i][1])*p.resize_ratio)
+            point_x = int((offset[i][0]+grid[i][0])*p.x_ratio)
+            point_y = int((offset[i][1]+grid[i][1])*p.y_ratio)
             if point_x > p.x_size or point_x < 0 or point_y > p.y_size or point_y < 0:
                 continue
             if len(lane_feature) == 0:

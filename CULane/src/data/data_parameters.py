@@ -12,11 +12,12 @@ class Parameters():
     save_path = "savefile/"
     model_path = "pretrained_model/"
     batch_size = 1
-    x_size = 512
-    y_size = 256
-    resize_ratio = 8
-    grid_x = x_size//resize_ratio  #64
-    grid_y = y_size//resize_ratio  #32
+    x_size = 1920
+    y_size = 768
+    x_ratio = 30
+    y_ratio = 24
+    grid_x = x_size//x_ratio  #64
+    grid_y = y_size//y_ratio  #32
     feature_size = 4
     regression_size = 110
     mode = 1

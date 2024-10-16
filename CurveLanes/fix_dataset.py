@@ -61,7 +61,6 @@ class Generator(object):
         random.shuffle(self.train_data)
 
         self.size_train = len(self.train_data)
-        print(self.size_train)
 
         # load annotation data (test set)
         #with open(self.p.test_root_url+'test_tasks_0627.json') as f:
@@ -76,7 +75,6 @@ class Generator(object):
         #random.shuffle(self.test_data)
 
         self.size_test = len(self.test_data)
-        print(self.size_test)
 
     def split(self):
         one = 0
