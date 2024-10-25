@@ -179,7 +179,7 @@ class PI_DDRNetSL(nn.Module):
         # print(f"Interpolate 2 >>>> {self.spp(self.layer5(self.relu(x))).shape}")
         features_out = F.interpolate(
                         self.spp(self.layer5(self.relu(x))),
-                        size=[height_output, width_output],
+                        size=[32, 64],
                         mode='bilinear')
         # features_out = F.interpolate(
         #                 self.spp(self.layer5(self.relu(x))),

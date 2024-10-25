@@ -1,7 +1,7 @@
 root=/home/thuratun/GW_workspace/CS2/Hitachi_Astemo_Prj/LaneDetection/PINet_new/CULane/evaluation_code/
 exp=$1
 data_dir=/home/thuratun/GW_workspace/CS2/Hitachi_Astemo_Prj/LaneDetection/PINet_new/CULane/dataset/small-client/
-detect_dir=/home/thuratun/GW_workspace/CS2/Hitachi_Astemo_Prj/LaneDetection/PINet_new/CULane/CULane/test_out
+detect_dir=/home/thuratun/GW_workspace/CS2/Hitachi_Astemo_Prj/LaneDetection/PINet_new/CULane/test_result
 #detect_dir=/home/kym/research/autonomous_car_vision/lane_detection/code/ITS/CuLane/evaluation_code/SCNN_Pytorch/experiments/exp10/coord_output/
 save_dir=/home/thuratun/GW_workspace/CS2/Hitachi_Astemo_Prj/LaneDetection/PINet_new/CULane/output_match
 bin_dir=${root}

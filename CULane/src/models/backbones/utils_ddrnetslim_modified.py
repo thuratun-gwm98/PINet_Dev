@@ -146,7 +146,7 @@ class DAPPM(nn.Module):
                                     BatchNorm2d(inplanes, momentum=bn_mom),
                                     nn.ReLU(inplace=True),
                                     nn.Conv2d(inplanes, branch_planes, kernel_size=1, bias=False),
-                                    )
+                                    )                                                                       # 8, 16
         self.scale2 = nn.Sequential(nn.Conv2d(inplanes, inplanes, kernel_size=2, stride=2, padding=0, bias=False),
                                     BatchNorm2d(inplanes, momentum=bn_mom),
                                     nn.ReLU(inplace=True),
@@ -154,7 +154,7 @@ class DAPPM(nn.Module):
                                     BatchNorm2d(inplanes, momentum=bn_mom),
                                     nn.ReLU(inplace=True),
                                     nn.Conv2d(inplanes, branch_planes, kernel_size=1, bias=False),
-                                    )                                                                     # 1, 2
+                                    )                                                                     # 4, 8
         
         # self.scale2 = nn.Sequential(nn.Conv2d(inplanes, inplanes, kernel_size=7, stride=4, padding=(2, 0), bias=False),
         #                             BatchNorm2d(inplanes, momentum=bn_mom),
@@ -244,10 +244,10 @@ class DAPPM(nn.Module):
     def forward(self, x):
 
         print(f"In DAPPM >>>>>>>>>")
-        print(f"Input Shape >>>> {x.shape}")               # 12, 30/32      # 8, 20
-        print(f"Scale0 >>> {self.scale0(x).shape}")
-        print(f"Scale1 ---> {self.scale1(x).shape}")        # 6, 15/16      # 4, 10
-        print(f"Scale2 ---> {self.scale2(x).shape}")        # 3, 8             # 2, 5
+        print(f"Input Shape >>>> {x.shape}")               # 12, 30/32      # 8, 20         # 16, 32
+        print(f"Scale0 >>> {self.scale0(x).shape}") 
+        print(f"Scale1 ---> {self.scale1(x).shape}")        # 6, 15/16      # 4, 10         # 8, 16
+        print(f"Scale2 ---> {self.scale2(x).shape}")        # 3, 8             # 2, 5       # 4, 8
         # print(f"Scale3 ---> {self.scale3(x).shape}")        # 2, 4      # 1,1   # 1, 2
         # print(f"Scale4 ---> {self.scale4(x).shape}")        # 1, 2      # 
 
@@ -264,7 +264,7 @@ class DAPPM(nn.Module):
                         mode='bilinear')+x_list[0])))
         
         print(f"X List 1 >>> {x_list[1].shape}")
-        x_list.append(self.process2((F.interpolate(self.scale2(x),    # 3, 8   # 2, 4  / 1, 2
+        x_list.append(self.process2((F.interpolate(self.scale2(x),    # 3, 8   # 2, 4  / 1, 2  # 16, 32
                         scale_factor=(4, 4),
                         mode='bilinear')+x_list[1])))
 

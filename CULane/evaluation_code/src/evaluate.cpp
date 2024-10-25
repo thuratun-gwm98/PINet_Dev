@@ -140,8 +140,10 @@ int main(int argc, char **argv)
 			continue;
 		string full_im_name = im_dir + sub_im_name;
 		string sub_txt_name =  sub_im_name.substr(0, sub_im_name.find_last_of(".")) + ".lines.txt";
+		// cout << "Sub Txt name: " << sub_txt_name << endl;
 		string anno_file_name = anno_dir + sub_txt_name;
-		string detect_file_name = detect_dir + sub_txt_name;
+		string detect_file_name = detect_dir + "/" + sub_txt_name;
+		cout << "Detect Filename: " << detect_file_name << endl;
 		vector<vector<Point2f> > anno_lanes;
 		vector<vector<Point2f> > detect_lanes;
 		read_lane_file(anno_file_name, anno_lanes);

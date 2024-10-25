@@ -49,8 +49,8 @@ class ModelAgent(nn.Module):
         print(f"Grid y >>> {self.grid_y}")
 
         # self.lane_detection_network = lane_detection_network()
-        # self.lane_detection_network = PI_DDRNet_slim(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
-        self.lane_detection_network = PIDDRNetSlim1(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
+        self.lane_detection_network = PI_DDRNet_slim(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
+        # self.lane_detection_network = PIDDRNetSlim1(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
 
         self.setup_optimizer()
 
@@ -293,6 +293,7 @@ class ModelAgent(nn.Module):
         lane_detection_loss = lane_detection_loss + LOSS_CFG["constant_attention"]*attention_loss
 
         print("######################################################################")
+        print(f"Epoch >>> {str(epoch+1)}")
         print("seg loss")
         print("same instance loss: ", sisc_loss.data)
         print("different instance loss: ", disc_loss.data)

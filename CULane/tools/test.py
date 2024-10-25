@@ -7,13 +7,14 @@
 import cv2
 import json
 import torch
-from src.models import model_helper
 import numpy as np
 from copy import deepcopy
 import time
+import os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+from src.models import model_helper
 from src.data.data_parameters import Parameters
 from src.data import util
-import os
 from pathlib import Path
 from tqdm import tqdm
 from sklearn.linear_model import LinearRegression
@@ -46,7 +47,7 @@ def Testing():
         lane_agent = model_helper.ModelAgent()
     else:
         lane_agent = model_helper.ModelAgent()
-        lane_agent.load_weights("30_tensor(0.4500)_lane_detection_network.pth")
+        lane_agent.load_weights(p.model_path)
 	
     ##############################
     ## Check GPU
@@ -108,7 +109,10 @@ def Testing():
 def evaluation(loader, lane_agent, thresh = p.threshold_point, index= -1, name = None):
     progressbar = tqdm(range(loader.size_test//4))
     for test_image, ratio_w, ratio_h, path, target_h, target_lanes in loader.Generate_Test():
-        x, y, _ = test(lane_agent, test_image, thresh, index= index)
+        # print(f"Path >>> {len(path)}")
+        # print(f"Test Image >>> {test_image.shape}")
+        x, y, out_images = test(lane_agent, test_image, thresh, index= index)
+        print(f"Out Images >>> {len(out_images)}")
         x_ = []
         y_ = []
         for i, j in zip(x, y):
@@ -117,9 +121,44 @@ def evaluation(loader, lane_agent, thresh = p.threshold_point, index= -1, name =
             y_.append(temp_y)
         #x_, y_ = find_target(x_, y_, ratio_w, ratio_h)
         x_, y_ = fitting(x_, y_, ratio_w, ratio_h)
-        #util.visualize_points_origin_size(x_[0], y_[0], test_image[0]*255, ratio_w, ratio_h)
-        #print(target_lanes)
-        #util.visualize_points_origin_size(target_lanes[0], target_h[0], test_image[0]*255, ratio_w, ratio_h)
+        print(f"[Debug]: X_ >>> {x_}")
+        # print(f"[Debug]: Y_ >>> {y_}")
+
+        for idx, pth in enumerate(path):
+            print(f"Path >>> {pth}")
+            image_path = dataset_cfg["dataset_root_dir"] + '/' + pth
+            image = cv2.imread(image_path)
+
+            # image = deepcopy(test_image[idx])
+            # image =  np.rollaxis(image, axis=2, start=0)
+            # image =  np.rollaxis(image, axis=2, start=0)*255.0
+            # image = image.astype(np.uint8).copy()
+            
+            # print(f"X_ >> {x_}")
+            for x_values, y_values in zip(x_[idx], y_[idx]):
+                # print(f"[Debug]: X >> {x_values}")
+                # print(f"[Debug]: Y >> {y_values}")
+                count = 0
+                
+                if np.sum(np.array(x_values)>=0) > 1 : ######################################################
+                    f_x_values = []
+                    f_y_values = []
+                    for x_value, y_value in zip(x_values, y_values):
+                        if x_value >= 0:
+                            f_x_values.append(x_value)
+                            f_y_values.append(y_value)
+                            count+=1
+                    print(f"F x vals >> {f_x_values}")
+                    # print(f"F y value >> {f_y_values}")
+                    for i in range(len(f_x_values)-1):
+                        # viz_image = cv2.circle(image, (int(f_x_values[i]), int(f_y_values[i])), 10, (0, 255, 0), -1)
+                        viz_image = cv2.line(image, (int(f_x_values[i]), int(f_y_values[i])), (int(f_x_values[i+1]), int(f_y_values[i+1])), (0, 255, 0), 3)
+            viz_image = cv2.resize(viz_image, (1920, 768))
+            testing_img_pth = "test_result/images"
+            if not os.path.exists(testing_img_pth):
+                os.makedirs(testing_img_pth, exist_ok=True)
+            image_name = os.path.basename(pth)
+            cv2.imwrite(f'{testing_img_pth}/{image_name}', viz_image)
 
         result_data = write_result(x_, y_, path)
         progressbar.update(1)
@@ -169,6 +208,7 @@ def fitting(x, y, ratio_w, ratio_h):
     out_y = []
     x_size = p.x_size/ratio_w
     y_size = p.y_size/ratio_h
+    print(f"[Debug] X Size >>> {x_size}")
 
     for x_batch, y_batch in zip(x,y):
         predict_x_batch = []
@@ -194,7 +234,7 @@ def fitting(x, y, ratio_w, ratio_h):
             last_second = 0
             last_y = 0
             last_second_y = 0
-            for pts in range(62, -1, -1):
+            for pts in range(300, -1, -1):
                 h = 2160 - pts*5 - 1
                 temp_y.append(h)
                 if h < min_y:
@@ -227,7 +267,6 @@ def fitting(x, y, ratio_w, ratio_h):
         out_x.append(predict_x_batch)
         out_y.append(predict_y_batch) 
 
-
     return out_x, out_y
 
 ############################################################################
@@ -242,14 +281,16 @@ def write_result(x, y, path):
         path_detail = path[i].split("/")
         # print(f"[Debug]: path_detal >>> {path_detail}")
         first_folder = path_detail[0]
+        print(f"[Debug]: First Folder >>> {first_folder}")
         second_folder = path_detail[1]
-        # print(f"[Debug]: Second Folder >>> {second_folder}")
+        print(f"[Debug]: Second Folder >>> {second_folder}")
         file_name = path_detail[1].split(".")[0]+".lines.txt"
-        if not os.path.exists(save_path+"/"+first_folder):
-            os.makedirs(save_path+"/"+first_folder)
+        save_test_path = save_path+"/"+first_folder
+        if not os.path.exists(save_test_path):
+            os.makedirs(save_test_path)
         # if not os.path.exists(save_path+"/"+first_folder):
         #     os.makedirs(save_path+"/"+first_folder)      
-        with open(save_path+"/"+file_name, "w") as f:  
+        with open(save_test_path+"/"+file_name, "w") as f:  
             for x_values, y_values in zip(x[i], y[i]):
                 # print(f"[Debug]: X >> {x_values}")
                 # print(f"[Debug]: Y >> {y_values}")
@@ -297,6 +338,11 @@ def test(lane_agent, test_images, thresh = p.threshold_point, index= -1):
         image =  np.rollaxis(image, axis=2, start=0)*255.0
         image = image.astype(np.uint8).copy()
 
+        # cv2.imshow("Debug Test Img", image)
+        # key = cv2.waitKey(0)
+        # if key == 27:
+        #     break
+
         confidence = confidences[i].view(grid_y, grid_x).cpu().data.numpy()
 
         offset = offsets[i].cpu().data.numpy()
@@ -314,7 +360,7 @@ def test(lane_agent, test_images, thresh = p.threshold_point, index= -1):
         in_x, in_y = eliminate_fewer_points(raw_x, raw_y)
                 
         # sort points along y 
-        # in_x, in_y = util.sort_along_y(in_x, in_y)  
+        in_x, in_y = util.sort_along_y(in_x, in_y)  
 
         result_image = util.draw_points(in_x, in_y, deepcopy(image))
 
@@ -322,7 +368,7 @@ def test(lane_agent, test_images, thresh = p.threshold_point, index= -1):
         out_y.append(in_y)
         out_images.append(result_image)
 
-    return out_x, out_y,  out_images
+    return out_x, out_y, out_images
 
 ############################################################################
 ## eliminate result that has fewer points than threshold
@@ -334,7 +380,7 @@ def eliminate_fewer_points(x, y):
     for i, j in zip(x, y):
         # print(f"Eli: x -> {i}")
         # print(f"Eli: y -> {j}")
-        if len(i)>3:  # default - 5
+        if len(i)>5:  # default - 5
             out_x.append(i)
             out_y.append(j)     
     return out_x, out_y   

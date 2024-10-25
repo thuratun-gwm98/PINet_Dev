@@ -75,6 +75,7 @@ class DataGenerator(object):
         for start, end in cuts:
             # resize original image to 512*256
             self.inputs, self.target_lanes, self.target_h, self.test_image, self.data_list = self.Resize_data(start, end, sampling_list)
+            
             # print(f"INputsss >>> {type(self.inputs)}")
             self.actual_batchsize = self.inputs.shape[0]
             self.Flip()

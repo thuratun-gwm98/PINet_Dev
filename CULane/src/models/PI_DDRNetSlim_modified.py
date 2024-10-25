@@ -199,9 +199,9 @@ class PI_DDRNetSL(nn.Module):
         features_out = F.interpolate(
                         self.spp(self.layer5(self.relu(x))),
                         scale_factor=(2, 2),
-                        mode='bilinear')
+                        mode='bilinear')                        # [4, 128, 32, 64]
         
-        print(f"Feature Out >>> {features_out.shape}")          # [4, 128, 96, 240]
+        print(f"Feature Out >>> {features_out.shape}")          # [4, 128, 96, 240]   # [4, 128, 32, 64]
 
         ### PINet Heads
         # print(f"HeadIn Info : >>> {self.out_confidence}")

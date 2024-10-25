@@ -183,8 +183,8 @@ class PIOutput(nn.Module):
     def __init__(self, in_size, out_size):
         super(PIOutput, self).__init__()
         self.conv1 = Conv2D_BatchNorm_Relu(in_size, in_size//2, 3, 1, 1, dilation=1)
-        self.conv2 = Conv2D_BatchNorm_Relu(in_size//2, in_size//4, 3, 2, 1, dilation=1)
-        self.conv3 = Conv2D_BatchNorm_Relu(in_size//4, out_size, 3, 0, 1, acti = False)
+        self.conv2 = Conv2D_BatchNorm_Relu(in_size//2, in_size//4, 3, 1, 1, dilation=1)
+        self.conv3 = Conv2D_BatchNorm_Relu(in_size//4, out_size, 1, 0, 1, acti = False)
 
     def forward(self, inputs):
         outputs = self.conv1(inputs)
