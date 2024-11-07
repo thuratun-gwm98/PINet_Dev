@@ -17,10 +17,12 @@ import numpy as np
 from src.data.data_loader import DataGenerator
 from src.data.data_parameters import Parameters
 from configs.parameters import TRAINER_CFG
+from collections import defaultdict
 import test
 import evaluation
 from src.data import util
 import os
+import json
 import copy
 torch.cuda.empty_cache()
 p = Parameters()
@@ -77,12 +79,15 @@ def Training():
     print('Training loop')
     step = 0
     sampling_list = None
+    loss_dict = defaultdict(list)
     for epoch in range(train_cfg['n_epoch']):
         lane_model.training_mode()
+        count=0
         for inputs, target_lanes, target_h, test_image, data_list in loader.Generate(sampling_list):
-            # util.visualize_points(inputs[0], target_lanes[0], target_h[0])
+            print(f"[Debug]: Target Lane 2 Length >> {len(target_lanes[0])} ")
+            # util.visualize_points(inputs[0], target_lanes[0], target_h[0], "ToTrain")
             #training
-            loss_p = lane_model.train(inputs, target_lanes, target_h, epoch, lane_model, data_list)
+            loss_p, offset_loss, sisc_loss, s_disc_loss, b_disc_loss, c_disc_loss, exist_condidence_loss, nonexist_confidence_loss, attention_loss, iou_loss = lane_model.train(inputs, target_lanes, target_h, epoch, lane_model, data_list)
             torch.cuda.synchronize()
             loss_p = loss_p.cpu().data
             
@@ -97,11 +102,26 @@ def Training():
                 # lane_model.save_model(epoch, loss_p)
                 step_ = f"{epoch}_{step}"
                 print(f"Test Image Shape >>> {test_image.shape}")
-                testing(lane_model, test_image, step_, loss_p)
+                testing(lane_model, test_image, epoch, count, offset_loss)
+
+            # testing(lane_model, test_image, epoch, count, offset_loss)
+
+            count+=1
             step += 1
 
         sampling_list = copy.deepcopy(lane_model.get_data_list())
         lane_model.sample_reset()
+
+        loss_dict["total_loss"].append(loss_p.item())
+        loss_dict["offset_loss"].append(offset_loss.item())
+        loss_dict["sisc_loss"].append(sisc_loss.item())
+        loss_dict["s_disc_loss"].append(s_disc_loss.item())
+        loss_dict["b_disc_loss"].append(b_disc_loss.item())
+        loss_dict["c_disc_loss"].append(c_disc_loss.item())
+        loss_dict["exist_condidence_loss"].append(exist_condidence_loss.item())
+        loss_dict["nonexist_confidence_loss"].append(nonexist_confidence_loss.item())
+        loss_dict["attention_loss"].append(attention_loss)
+        loss_dict["iou_loss"].append(iou_loss.item())
 
         #evaluation
         if epoch==0 or (epoch+1)%10==0:
@@ -113,23 +133,34 @@ def Training():
 
             # for idx in index:
             print("generate result")
-            test.evaluation(loader, lane_model, name="test_result_"+str(epoch)+"_"+".json")
+            test.evaluation(loader, lane_model, epoch=str(epoch))
             name = "epoch_idx_"+str(epoch) + str(step/100)
             os.system("sh /home/kym/research/autonomous_car_vision/lane_detection/code/ITS/CuLane/evaluation_code/SCNN_Pytorch/utils/lane_evaluation/CULane/Run.sh " + name)
 
         if int(step)>700000:
             break
+    
+    dump_loss_data(loss_dict)
+    print(f"[INFO] Training Completed")
 
-
-def testing(lane_model, test_image, step, loss):
+def testing(lane_model, test_image, epoch, count, loss):
     lane_model.evaluate_mode()
 
     _, _, ti = test.test(lane_model, np.array([test_image]))
 
-    cv2.imwrite('test_result/images/result_'+str(step)+'_'+str(loss)+'.png', ti[0])
+    save_path = f"test_result/images/epoch_{epoch}/"
+    os.makedirs(save_path, exist_ok=True)
+
+    cv2.putText(ti[0], str(loss), (50, 70), cv2.FONT_HERSHEY_COMPLEX, 1.3, (0, 0, 255), 1)
+
+    cv2.imwrite(f'{save_path}/result_{str(epoch)}_{str(count)}.png', ti[0])
 
     lane_model.training_mode()
 
+def dump_loss_data(loss_dict):
+    json_result = os.path.join(f"test_result/images", "loss_data.json")
+    with open(json_result, "w") as json_file:
+        json.dump(loss_dict, json_file, indent=4)
     
 if __name__ == '__main__':
     Training()
