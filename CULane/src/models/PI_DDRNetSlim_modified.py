@@ -62,10 +62,10 @@ class PI_DDRNetSL(nn.Module):
 
         self.layer4_ = self._make_layer(block, highres_planes, highres_planes, 2)
 
-        self.layer5_ = self._make_layer(Bottleneck, highres_planes, highres_planes, 1)
+        self.layer5_ = self._make_layer(Bottleneck, highres_planes, highres_planes, 1, stride=2)
 
-        # self.layer5 =  self._make_layer(Bottleneck, planes * 8, planes * 8, 1, stride=2)
-        self.layer5 =  self._make_layer5(Bottleneck, planes * 8, planes * 8, 1, kernel_size=3, stride=2, padding=1)
+        self.layer5 =  self._make_layer(Bottleneck, planes * 8, planes * 8, 1, stride=2)
+        # self.layer5 =  self._make_layer5(Bottleneck, planes * 8, planes * 8, 1, kernel_size=3, stride=2, padding=1)
 
         # self.spp = DAPPM(planes * 16, spp_planes, planes * 4)   # 32*4->128, 16*4->64 (16*8)
         self.spp = DAPPM(planes * 16, spp_planes, head_planes)
@@ -137,7 +137,7 @@ class PI_DDRNetSL(nn.Module):
 
         x = self.conv1(inputs)                      # 1, 32, 192, 480
 
-        print(f"After Conv1 >> {x.shape}")
+        # print(f"After Conv1 >> {x.shape}")
 
         # x = self.layer1(x)                          # 1, 32, 192, 480
         # layers.append(x)
@@ -147,23 +147,23 @@ class PI_DDRNetSL(nn.Module):
 
         x = self.layer2(self.relu(x))                   # 1, 64, 96, 240
         layers.append(x)
-        print(f"Layer2 Shape {x.shape}")
+        # print(f"Layer2 Shape {x.shape}")
 
         # print(f"After layer 2 >> {x.shape}")
   
         x = self.layer3(self.relu(x))
         layers.append(x)
-        print(f"Layer 3 shape >> {x.shape}")
+        # print(f"Layer 3 shape >> {x.shape}")
         
         x_ = self.layer3_(self.relu(layers[0]))
-        print(f"Layer 3 bar shape >>> {x_.shape}")
+        # print(f"Layer 3 bar shape >>> {x_.shape}")
 
         # print(f"After layer3, x is >> {x.shape} & x_bar is >> {x_.shape}")
 
         x = x + self.down3(self.relu(x_))
         # print(f"After Down3 layer3_bar + layer3 out, x is>> {x.shape}")
 
-        print(f"Interpolate 1 >>> {self.compression3(self.relu(layers[1])).shape}")
+        # print(f"Interpolate 1 >>> {self.compression3(self.relu(layers[1])).shape}")
     
         x_ = x_ + F.interpolate(
                         self.compression3(self.relu(layers[1])),
@@ -175,8 +175,8 @@ class PI_DDRNetSL(nn.Module):
         #     temp = x_
 
         features = self.layer4(self.relu(x))            # [4, 256, 24, 60]
-        layers.append(x)
-        print(f"After layer4, Features x is ----->>>> {features.shape} ")
+        layers.append(features)
+        # print(f"After layer4, Features x is ----->>>> {features.shape} ")
 
         # return x
 
@@ -184,24 +184,37 @@ class PI_DDRNetSL(nn.Module):
 
         x_ = self.layer4_(self.relu(x_))  # For Feature, We can get from this
         # print(f"After layer4_bar, x_bar is ---->>>> {x_.shape} ")
-        print(f"Layer 4_bar shape >>> {x_.shape}")
+        # print(f"Layer 4_bar shape >>> {x_.shape}")
 
         x = features + self.down4(self.relu(x_))
         # print(f"After Down 4 >>> {x.shape}")
 
+        x_ = x_ + F.interpolate(
+                        self.compression4(self.relu(layers[2])),        # 1, 64, 16, 40
+                        scale_factor=(4, 4),    # scale factor (2, 2) -> (32, 80) / (4, 4) -> (64, 160)
+                        mode='bilinear')            # [1, 64, 64, 160] -> 1/8
         
-        print(f"Dim to Layer5 ---> {x.shape}")
+        # print(f"[Debug]: x_ >>>>> {x4_.shape}")
+
+        feat_out_ = self.layer5_(self.relu(x_))
+        # print(f"[Debug]: Feature Out Bar Shape >>> {feat_out_.shape}")
+        
+        # print(f"Dim to Layer5 ---> {x.shape}")
         # scaled_x = F.interpolate(x, )
         # print(f"Layer 5 info >>>> {self.layer5}")
-        print(f"Dim after Layer5 ---> {self.layer5(self.relu(x)).shape}")
-        print(f"Dim after SPP ---> {self.spp(self.layer5(self.relu(x))).shape}")
+        # print(f"Dim after Layer5 ---> {self.layer5(self.relu(x)).shape}")
+        # print(f"Dim after SPP ---> {self.spp(self.layer5(self.relu(x))).shape}")
         # print(f"Layer SPP info ----> {self.spp}")
-        features_out = F.interpolate(
+        feat_out = F.interpolate(
                         self.spp(self.layer5(self.relu(x))),
-                        scale_factor=(2, 2),
+                        scale_factor=(4, 4),
                         mode='bilinear')                        # [4, 128, 32, 64]
         
-        print(f"Feature Out >>> {features_out.shape}")          # [4, 128, 96, 240]   # [4, 128, 32, 64]
+        # print(f"Feature Out >>> {feat_out.shape}")          # [4, 128, 96, 240]   # [4, 128, 32, 64]
+
+        features_out = feat_out + feat_out_
+
+        print(f"[Debug]: Feature Out Shape >> {features_out.shape}")
 
         ### PINet Heads
         # print(f"HeadIn Info : >>> {self.out_confidence}")
@@ -212,9 +225,9 @@ class PI_DDRNetSL(nn.Module):
         out_offset = self.out_offset(features_out)
         out_instance = self.out_instance(features_out)
 
-        print(f"Out Confidence Shape ----->>> {out_confidence.shape}")
-        print(f"Out Offset Shapte ----->>> {out_offset.shape}")
-        print(f"Out Inshtance ---->>> {out_instance.shape}")
+        # print(f"Out Confidence Shape ----->>> {out_confidence.shape}")
+        # print(f"Out Offset Shapte ----->>> {out_offset.shape}")
+        # print(f"Out Inshtance ---->>> {out_instance.shape}")
 
         results = [out_confidence, out_offset, out_instance]
 

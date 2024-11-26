@@ -119,8 +119,8 @@ class PI_DDRNetSL(nn.Module):
 
         # print(f"After Conv1 >> {x.shape}")
 
-        x = self.layer1(x)
-        layers.append(x)
+        # x = self.layer1(x)
+        # layers.append(x)
 
         # print(f"After Layer1 >> {x.shape}")
 
@@ -132,16 +132,16 @@ class PI_DDRNetSL(nn.Module):
         x = self.layer3(self.relu(x))
         layers.append(x)
         
-        x_ = self.layer3_(self.relu(layers[1]))
+        x_ = self.layer3_(self.relu(layers[0]))
 
         # print(f"After layer3, x is >> {x.shape} & x_bar is >> {x_.shape}")
 
         x = x + self.down3(self.relu(x_))
         # print(f"After Down3 layer3_bar + layer3 out, x is>> {x.shape}")
 
-        # print(f"Interpolate 1 >>> {self.compression3(self.relu(layers[2])).shape}")
+        print(f"Interpolate 1 >>> {self.relu(layers[1]).shape}")
         x_ = x_ + F.interpolate(
-                        self.compression3(self.relu(layers[2])),
+                        self.compression3(self.relu(layers[1])),
                         size=[height_output, width_output],
                         mode='bilinear')
         # x_ = x_ + F.interpolate(
@@ -154,8 +154,8 @@ class PI_DDRNetSL(nn.Module):
         #     temp = x_
 
         features = self.layer4(self.relu(x))            # [4, 256, 24, 60]
-        layers.append(x)
-        # print(f"After layer4, Features x is ----->>>> {features.shape} ")
+        layers.append(features)
+        print(f"After layer4, Features x is ----->>>> {features.shape} ")
 
         # return x
 
@@ -166,25 +166,34 @@ class PI_DDRNetSL(nn.Module):
 
         x = features + self.down4(self.relu(x_))
         # print(f"After Down 4 >>> {x.shape}")
+        print(f"[Debug]: Compression4 In Shape >>> {self.relu(layers[2]).shape}")
+        print(f"[Debug]: COmpression4 Layer >>> {self.compression4}")
 
-        # x_ = x_ + F.interpolate(
-        #                 self.compression4(self.relu(layers[3])),
-        #                 size=[height_output, width_output],
-        #                 mode='bilinear')                    # For Feature, We can get also from this
+        x_ = x_ + F.interpolate(
+                        self.compression4(self.relu(layers[2])),
+                        size=[height_output, width_output],
+                        mode='bilinear')                    # For Feature, We can get also from this
+        
+        print(f"After compression4, shape is {self.compression4(self.relu(layers[2])).shape}")
+        print(f"After compression4, x_bar is {x_.shape}")
+        print(f"[Debug]: Layer 5_bar in shape >> {self.relu(x_).shape}")
 
-        # print(f"After compression4, x_bar is {x_.shape}")
+        x_ = self.layer5_(self.relu(x_))                    # must 
+        print(f"After Layer 5bar >> {x_.shape}")
 
-        # x_ = self.layer5_(self.relu(x_))
-        # print(f"After Layer 5bar >> {x_.shape}")
+        print(f"[Debug]: Layer 5 in shape >>> {self.relu(x).shape}")
+        print(f"[Debug]: After Layer 5 shape >>> {self.layer5(self.relu(x)).shape}")
         # print(f"Interpolate 2 >>>> {self.spp(self.layer5(self.relu(x))).shape}")
         features_out = F.interpolate(
                         self.spp(self.layer5(self.relu(x))),
-                        size=[32, 64],
+                        size=[height_output, width_output],
                         mode='bilinear')
         # features_out = F.interpolate(
         #                 self.spp(self.layer5(self.relu(x))),
         #                 scale_factor=(8, 8),
         #                 mode='bilinear')
+        final_feature_in = features_out + x_
+        print(f"[Debug]: Final Feature In Shape >>> {final_feature_in.shape}")
         
         print(f"Feature Out >>> {features_out.shape}")          # [4, 128, 96, 240]
 

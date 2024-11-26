@@ -50,8 +50,8 @@ class ModelAgent(nn.Module):
         print(f"Grid y >>> {self.grid_y}")
 
         # self.lane_detection_network = lane_detection_network()
-        self.lane_detection_network = PI_DDRNet_slim(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
-        # self.lane_detection_network = PIDDRNetSlim1(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
+        # self.lane_detection_network = PI_DDRNet_slim(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
+        self.lane_detection_network = PIDDRNetSlim1(self.trainer_cfg["pretrained_weight"], self.trainer_cfg["pretrained"])
 
         self.setup_optimizer()
 
@@ -80,6 +80,8 @@ class ModelAgent(nn.Module):
         image =  np.rollaxis(image, axis=2, start=0)*255.0
         # print(f"[Debug]: Image Shape >> {image.shape}")
         viz_img = image.astype(np.uint8).copy()
+        # print(f"[Debug]: Target Lanes >>> {target_lanes[0].ndim}")
+        # print(f"[Debug]: Target Heights >>> {target_h}")
 
         target_lanes, target_h = util.sort_batch_along_y(target_lanes, target_h)
         # util.visualize_points(inputs[0], target_lanes[0], target_h[0], "RawGT_Pts")
@@ -106,12 +108,12 @@ class ModelAgent(nn.Module):
                         cv2.circle(viz_img, (int(x_pt), int(y_pt)), 3, (0, 255, 0), -1)
 
                         # x_offxet = 0.5 # ((point*1.0/self.dataset_cfg['width_ratio']) - x_index) * self.dataset_cfg["width_ratio"]
-                        # # print(f"[Debug]: X Pt >>> {x_pt}")
-                        # # print(f"[Debug]: X Offset >>> {x_offxet}")
-                        # # print(f"[Debug]: Offseted x >>> {x_pt+x_offxet}")
+                        # # # print(f"[Debug]: X Pt >>> {x_pt}")
+                        # # # print(f"[Debug]: X Offset >>> {x_offxet}")
+                        # # # print(f"[Debug]: Offseted x >>> {x_pt+x_offxet}")
                         # y_offset = 0 # ((target_h[batch_index][lane_index][point_index]*1.0/self.dataset_cfg["height_ratio"]) - y_index) * self.dataset_cfg["height_ratio"]
                         # cv2.circle(viz_img, (int(x_pt+x_offxet), int(y_pt+y_offset)), 2, (0, 0, 255), -1)
-                        # # cv2.putText(viz_img, str((round(x_offxet, 2))), (int(x_pt+x_offxet), int(y_pt+y_offset)), cv2.FONT_HERSHEY_COMPLEX, 0.4, (0, 0, 255), 1)
+                        # cv2.putText(viz_img, str((round(x_offxet, 2))), (int(x_pt+x_offxet), int(y_pt+y_offset)), cv2.FONT_HERSHEY_COMPLEX, 0.4, (0, 0, 255), 1)
                         # viz_img = cv2.resize(viz_img, (1920, 768))
                         # cv2.imshow("Instance Viz", viz_img)
                         # key = cv2.waitKey(0)
@@ -383,8 +385,8 @@ class ModelAgent(nn.Module):
     ## train 
     #####################################################
     def train(self, inputs, target_lanes, target_h, epoch, agent, data_list):
-        point_loss, offset_loss, sisc_loss, s_disc_loss, b_disc_loss, c_disc_loss, exist_condidence_loss, nonexist_confidence_loss, attention_loss, iou_loss = self.train_point(inputs, target_lanes, target_h, epoch, data_list)
-        return point_loss, offset_loss, sisc_loss, s_disc_loss, b_disc_loss, c_disc_loss, exist_condidence_loss, nonexist_confidence_loss, attention_loss, iou_loss
+        point_loss, offset_loss, sisc_loss, disc_loss, exist_condidence_loss, nonexist_confidence_loss, attention_loss, iou_loss = self.train_point(inputs, target_lanes, target_h, epoch, data_list)
+        return point_loss, offset_loss, sisc_loss, disc_loss, exist_condidence_loss, nonexist_confidence_loss, attention_loss, iou_loss
 
     #####################################################
     ## compute loss function and optimize
@@ -446,6 +448,8 @@ class ModelAgent(nn.Module):
         disc_loss = 0
         
         # hard sampling ##################################################################
+        print(f"Result Length >>>> {len(result)}")
+
         confidance, offset, feature = result[-1]
         hard_loss = 0
         # print(f"Confidence Shape >>> {confidance.shape}")
@@ -471,6 +475,7 @@ class ModelAgent(nn.Module):
 
             #exist confidance loss##########################
             confidance_gt = ground_truth_point[:, 0, :, :]      # gt-val is 1
+            print(f"[Debug]: Confidence GT Shape >>> {confidance_gt.shape}")
             confidance_gt = confidance_gt.view(real_batch_size, 1, self.grid_y, self.grid_x)
             a = confidance_gt[0][confidance_gt[0]==1] - confidance[0][confidance_gt[0]==1]
             exist_condidence_loss =  exist_condidence_loss +\
@@ -480,13 +485,14 @@ class ModelAgent(nn.Module):
             #non exist confidance loss##########################
             target = confidance[confidance_gt==0]
             nonexist_confidence_loss =  nonexist_confidence_loss +\
-				torch.sum( ( target[target>0.005] )**2 )/\
-				(torch.sum(target>0.005)+1)
+				torch.sum( ( target[target>0.01] )**2 )/\
+				(torch.sum(target>0.01)+1)
 
             #offset loss ##################################
             offset_x_gt = ground_truth_point[:, 1:2, :, :]
             offset_y_gt = ground_truth_point[:, 2:3, :, :]
 
+            print(f"[Debug]: Pred Offset Shape >>> {offset.shape}")
             predict_x = offset[:, 0:1, :, :]
             predict_y = offset[:, 1:2, :, :]
             # print(f"Confidence GT >> {confidance_gt}")
@@ -540,7 +546,7 @@ class ModelAgent(nn.Module):
 
             #compute loss for similarity ###############
             # with autocast():
-            # print(f"[Debug]: Feature >>> {feature.shape}")
+            print(f"[Debug]: Feature >>> {feature.shape}")
             # break
             feature_map = feature.view(real_batch_size, self.trainer_cfg["feature_size"], 1, self.grid_y*self.grid_x)
             feature_map = feature_map.expand(real_batch_size, self.trainer_cfg["feature_size"], self.grid_y*self.grid_x, self.grid_y*self.grid_x)#.detach()
@@ -564,32 +570,37 @@ class ModelAgent(nn.Module):
             # print(f"DistanceMap 1 >>> {distance_map[ground_truth_instance==2].shape}")
             # print(f"[Debug]: GT instance Shape >>> {ground_truth_instance.shape}")
             # print(f"[Debug]: GT instance type shape >>> {g_instance_type.shape}")
-            straight_instance_mask = g_instance_type == 0  # mask_arr with True value
-            straight_distance_map = distance_map
-            straight_distance_map[~straight_instance_mask] = 3  # leave mask's True index value & convert False value to 3
-            straight_disc_loss = straight_disc_loss + \
-				torch.sum((LOSS_CFG['K_S']-straight_distance_map[ground_truth_instance==2])[(LOSS_CFG['K_S']-straight_distance_map[ground_truth_instance==2]) > 0])/\
-				torch.sum(ground_truth_instance==2)
+            # straight_instance_mask = g_instance_type == 0  # mask_arr with True value
+            # straight_distance_map = distance_map
+            # straight_distance_map[~straight_instance_mask] = 3  # leave mask's True index value & convert False value to 3
+            # print(f"[Debug]: Straight Dist Map >>> {straight_distance_map[ground_truth_instance==2]}")
+            # straight_disc_loss = straight_disc_loss + \
+			# 	torch.sum((LOSS_CFG['K_S']-straight_distance_map[ground_truth_instance==2])[(LOSS_CFG['K_S']-straight_distance_map[ground_truth_instance==2]) > 0])/\
+			# 	torch.sum(ground_truth_instance==2)
 
-            # branch_disc
-            branch_instance_mask = g_instance_type == 1  # mask_arr with True value
-            branch_distance_map = distance_map
-            branch_distance_map[~branch_instance_mask] = 3  # leave mask's True index value & convert False value to 3
-            branch_disc_loss = branch_disc_loss + \
-				torch.sum((LOSS_CFG['K_B']-branch_distance_map[ground_truth_instance==2])[(LOSS_CFG['K_B']-branch_distance_map[ground_truth_instance==2]) > 0])/\
-				torch.sum(ground_truth_instance==2)
+            # # branch_discbranch_distance_map
+            
+            # branch_instance_mask = g_instance_type == 1  # mask_arr with True value
+            # branch_distance_map = distance_map
+            # branch_distance_map[~branch_instance_mask] = 5e-11  # leave mask's True index value & convert False value to 3
+            # print(f"[Debug]: Branch Dist Map >>> {branch_distance_map[ground_truth_instance==2]}")
+            # branch_disc_loss = branch_disc_loss + \
+			# 	torch.sum((LOSS_CFG['K_B']-branch_distance_map[ground_truth_instance==2])[(LOSS_CFG['K_B']-branch_distance_map[ground_truth_instance==2]) > 0])/\
+			# 	torch.sum(ground_truth_instance==2) * LOSS_CFG["constant_branch_disc"]
 
-            # curve_disc
-            curve_instance_mask = g_instance_type == 1  # mask_arr with True value
-            curve_distance_map = distance_map
-            curve_distance_map[~curve_instance_mask] = 3  # leave mask's True index value & convert False value to 3
-            curve_disc_loss = curve_disc_loss + \
-				torch.sum((LOSS_CFG['K_C']-curve_distance_map[ground_truth_instance==2])[(LOSS_CFG['K_C']-curve_distance_map[ground_truth_instance==2]) > 0])/\
-				torch.sum(ground_truth_instance==2)
+            # # curve_disc
+            # curve_instance_mask = g_instance_type == 1  # mask_arr with True value
+            # curve_distance_map = distance_map
+            # curve_distance_map[~curve_instance_mask] = 0.09  # leave mask's True index value & convert False value to 3
+            # curve_disc_loss = curve_disc_loss + \
+			# 	torch.sum((LOSS_CFG['K_C']-curve_distance_map[ground_truth_instance==2])[(LOSS_CFG['K_C']-curve_distance_map[ground_truth_instance==2]) > 0])/\
+			# 	torch.sum(ground_truth_instance==2)
             
 
-            disc_loss = disc_loss + straight_disc_loss + branch_disc_loss + curve_disc_loss
-
+            # disc_loss = disc_loss + straight_disc_loss + branch_disc_loss + curve_disc_loss
+            disc_loss = disc_loss + \
+				torch.sum((self.p.K1-distance_map[ground_truth_instance==2])[(self.p.K1-distance_map[ground_truth_instance==2]) > 0])/\
+				torch.sum(ground_truth_instance==2)
 
         #attention loss
         attention_loss = 0
@@ -620,9 +631,10 @@ class ModelAgent(nn.Module):
         ### For return
         offset_loss_r = offset_loss
         sisc_loss_r = sisc_loss
-        s_disc_loss_r = straight_disc_loss
-        b_disc_loss_r = branch_disc_loss
-        c_disc_loss_r = curve_disc_loss
+        disc_loss_r = disc_loss
+        # s_disc_loss_r = straight_disc_loss
+        # b_disc_loss_r = branch_disc_loss
+        # c_disc_loss_r = curve_disc_loss
         exist_condidence_loss_r = exist_condidence_loss
         nonexist_confidence_loss_r = nonexist_confidence_loss
         attention_loss_r = attention_loss
@@ -632,9 +644,9 @@ class ModelAgent(nn.Module):
         print(f"Epoch >>> {str(epoch+1)}")
         print("seg loss")
         print("same instance loss: ", sisc_loss.data)
-        print("different straight instance loss: ", straight_disc_loss.data)
-        print("different branch instance loss: ", branch_disc_loss.data)
-        print("different curve instance loss: ", curve_disc_loss.data)
+        # print("different straight instance loss: ", straight_disc_loss.data)
+        # print("different branch instance loss: ", branch_disc_loss.data)
+        # print("different curve instance loss: ", curve_disc_loss.data)
         print("total different instance loss: ", disc_loss.data)
 
         print("point loss")
@@ -658,7 +670,7 @@ class ModelAgent(nn.Module):
         del confidance, offset, feature
         del ground_truth_point, ground_binary, ground_truth_instance
         del feature_map, point_feature, distance_map
-        del exist_condidence_loss, nonexist_confidence_loss, offset_loss, sisc_loss, straight_disc_loss, branch_disc_loss, curve_disc_loss, iou_loss
+        del exist_condidence_loss, nonexist_confidence_loss, offset_loss, sisc_loss, iou_loss
 
         trim = 180
         if epoch>0 and self.current_epoch != epoch:
@@ -694,7 +706,7 @@ class ModelAgent(nn.Module):
                 self.l_rate = 0.0000001
                 self.setup_optimizer()
 
-        return lane_detection_loss, offset_loss_r, sisc_loss_r, s_disc_loss_r, b_disc_loss_r, c_disc_loss_r, exist_condidence_loss_r, nonexist_confidence_loss_r, attention_loss_r, iou_loss_r
+        return lane_detection_loss, offset_loss_r, sisc_loss_r, disc_loss_r, exist_condidence_loss_r, nonexist_confidence_loss_r, attention_loss_r, iou_loss_r
 
     #####################################################
     ## predict lanes

@@ -106,13 +106,13 @@ def Testing():
 ############################################################################
 ## evaluate on the test dataset
 ############################################################################
-def evaluation(loader, lane_agent, thresh = p.threshold_point, index= -1, name = None):
+def evaluation(loader, lane_agent, thresh = p.threshold_point, index= -1, epoch = None):
     progressbar = tqdm(range(loader.size_test//4))
     for test_image, ratio_w, ratio_h, path, target_h, target_lanes in loader.Generate_Test():
         # print(f"Path >>> {len(path)}")
         # print(f"Test Image >>> {test_image.shape}")
         x, y, out_images = test(lane_agent, test_image, thresh, index= index)
-        print(f"Out Images >>> {len(out_images)}")
+        # print(f"Out Images >>> {len(out_images)}")
         x_ = []
         y_ = []
         for i, j in zip(x, y):
@@ -121,11 +121,11 @@ def evaluation(loader, lane_agent, thresh = p.threshold_point, index= -1, name =
             y_.append(temp_y)
         #x_, y_ = find_target(x_, y_, ratio_w, ratio_h)
         x_, y_ = fitting(x_, y_, ratio_w, ratio_h)
-        print(f"[Debug]: X_ >>> {x_}")
+        # print(f"[Debug]: X_ >>> {x_}")
         # print(f"[Debug]: Y_ >>> {y_}")
 
         for idx, pth in enumerate(path):
-            print(f"Path >>> {pth}")
+            # print(f"Path >>> {pth}")
             image_path = dataset_cfg["dataset_root_dir"] + '/' + pth
             image = cv2.imread(image_path)
 
@@ -135,6 +135,7 @@ def evaluation(loader, lane_agent, thresh = p.threshold_point, index= -1, name =
             # image = image.astype(np.uint8).copy()
             
             # print(f"X_ >> {x_}")
+            viz_image = image.copy()
             for x_values, y_values in zip(x_[idx], y_[idx]):
                 # print(f"[Debug]: X >> {x_values}")
                 # print(f"[Debug]: Y >> {y_values}")
@@ -148,16 +149,16 @@ def evaluation(loader, lane_agent, thresh = p.threshold_point, index= -1, name =
                             f_x_values.append(x_value)
                             f_y_values.append(y_value)
                             count+=1
-                    print(f"F x vals >> {f_x_values}")
+                    # print(f"F x vals >> {f_x_values}")
                     # print(f"F y value >> {f_y_values}")
                     for i in range(len(f_x_values)-1):
                         # viz_image = cv2.circle(image, (int(f_x_values[i]), int(f_y_values[i])), 10, (0, 255, 0), -1)
-                        viz_image = cv2.line(image, (int(f_x_values[i]), int(f_y_values[i])), (int(f_x_values[i+1]), int(f_y_values[i+1])), (0, 255, 0), 3)
-            viz_image = cv2.resize(viz_image, (1920, 768))
-            testing_img_pth = "test_result/images"
+                        viz_image = cv2.line(viz_image, (int(f_x_values[i]), int(f_y_values[i])), (int(f_x_values[i+1]), int(f_y_values[i+1])), (0, 255, 0), 3)
+            viz_image = cv2.resize(viz_image, (950, 384))
+            testing_img_pth = f"test_result/images/epoch_{epoch}/"
             if not os.path.exists(testing_img_pth):
                 os.makedirs(testing_img_pth, exist_ok=True)
-            image_name = os.path.basename(pth)
+            image_name = f"{os.path.splitext(os.path.basename(pth))[0]}.jpg"
             cv2.imwrite(f'{testing_img_pth}/{image_name}', viz_image)
 
         result_data = write_result(x_, y_, path)

@@ -1,6 +1,6 @@
 #!/bin/bash
 VIDEO_DIR="/home/thuratun/GW_workspace/CS2/Hitachi_Astemo_Prj/MONO_Lss/MonoLSS/kitti/inference_data/selected_video_for_infer/"
-WEIGHT_FILE="./pretrained_model/50_tensor(0.4534)_lane_detection_network.pth"
+WEIGHT_FILE="./pretrained_model/exp_7_50_tensor(1.4694)_lane_detection_network.pth"
 DEVICE="cuda:0"
 SAVE_PATH="./infer_output"
 

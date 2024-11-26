@@ -151,7 +151,7 @@ class DataGenerator(object):
 
                 for k in range(len(temp_x)):
                     x_value = float(temp_x[k])
-                    y_value = int(float(temp_y[k]))
+                    y_value = float(temp_y[k])
                     if 0 < x_value < original_size_x and 0 < y_value < original_size_y:
                         x.append( x_value )
                         y.append( y_value )
@@ -201,6 +201,7 @@ class DataGenerator(object):
             train_img_fp = train_img_pth[:ext_idx + 4]
             # print(f"Train Img :: >> {self.dataset_root + '/' + train_img_fp}")
             train_img_path = self.dataset_root + '/' + train_img_fp
+            # print(f"Train Img Path >> {train_img_path}")
             temp_image = cv2.imread(train_img_path)
             
             # if i==start:
@@ -222,6 +223,7 @@ class DataGenerator(object):
                 annoatation_data = f.readlines()         
 
             for j in annoatation_data:
+                # print(f"J ann: >> {j}")
                 x = []
                 y = []
                 temp_x = j.split()[0::2]
@@ -229,7 +231,7 @@ class DataGenerator(object):
 
                 for k in range(len(temp_x)):
                     x_value = float(temp_x[k])
-                    y_value = int(float(temp_y[k]))
+                    y_value = float(temp_y[k])
                     if 0 < x_value < original_size_x and 0 < y_value < original_size_y:
                         x.append( x_value )
                         y.append( y_value )

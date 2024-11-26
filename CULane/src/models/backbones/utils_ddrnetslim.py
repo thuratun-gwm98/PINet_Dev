@@ -335,8 +335,8 @@ class DualResNet_slim(nn.Module):
 
         print(f"After Conv1 >> {x.shape}")
 
-        x = self.layer1(x)
-        layers.append(x)
+        # x = self.layer1(x)
+        # layers.append(x)
 
         print(f"After Layer1 >> {x.shape}")
 
@@ -355,7 +355,7 @@ class DualResNet_slim(nn.Module):
         x = x + self.down3(self.relu(x_))
         print(f"After Down3 layer3_bar + layer3 out, x is>> {x.shape}")
         x_ = x_ + F.interpolate(
-                        self.compression3(self.relu(layers[2])),
+                        self.compression3(self.relu(layers[1])),
                         size=[height_output, width_output],
                         mode='bilinear')
         print(f"After inter polation, compression layer3 + previous x_bar of l3, x_bar is {x_.shape} ")
@@ -376,15 +376,17 @@ class DualResNet_slim(nn.Module):
         x = features + self.down4(self.relu(x_))
         print(f"After Down 4 >>> {x.shape}")
 
-        # x_ = x_ + F.interpolate(
-        #                 self.compression4(self.relu(layers[3])),
-        #                 size=[height_output, width_output],
-        #                 mode='bilinear')                    # For Feature, We can get also from this
+        x_ = x_ + F.interpolate(
+                        self.compression4(self.relu(layers[2])),
+                        size=[height_output, width_output],
+                        mode='bilinear')                    # For Feature, We can get also from this
 
         # print(f"After compression4, x_bar is {x_.shape}")
 
-        # x_ = self.layer5_(self.relu(x_))
-        # print(f"After Layer 5bar >> {x_.shape}")
+        x_ = self.layer5_(self.relu(x_))
+        print(f"After Layer 5bar >> {x_.shape}")
+        print(f"After Layer 5 shape >>> {self.layer5(self.relu(x)).shape}")
+
         features_out = F.interpolate(
                         self.spp(self.layer5(self.relu(x))),
                         size=[height_output, width_output],

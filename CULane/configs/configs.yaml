@@ -1,10 +1,10 @@
 dataset:
-  dataset_root_dir: 'dataset/small-client'
-  batch_size: 4
-  img_width: 1920  # 1920
-  img_height: 768  # 768
-  width_ratio: 30
-  height_ratio: 24
+  dataset_root_dir: '/home/thuratun/GW_workspace/CS2/Hitachi_Astemo_Prj/LaneDetection/dataset/branch_lane_small_dataset/'
+  batch_size: 2
+  img_width: 1280  # 1920
+  img_height: 512  # 768
+  width_ratio: 16
+  height_ratio: 16
   
   flip_ratio: 0.6
   translation_ratio: 0.6
@@ -15,26 +15,31 @@ dataset:
   
 optimizer:
   lr: 0.001
-  weight_decay: 0.00001
+  weight_decay: 0.0001
 
 trainer:
-  feature_size: 4
+  feature_size: 8
   save_path: "savefile/"
-  n_epoch: 30
-  pretrained_weight: "pretrained_model/DDRNet23s_imagenet.pth"
+  n_epoch: 50
+  pretrained_weight: "./pretrained_model/50_tensor_0.2403_lane_detection_network.pth"
   pretrained: True
 
 loss:
-  K1: 1.0
+  lane_width: 0.2 # 0.32 # 0.05
+  K_S: 0.3 # 0.3
+  K_B: 0.001 #0.1
+  K_C: 0.1
   K2: 2.0
-  constant_offset: 0.2
-  constant_exist: 2.5
-  constant_nonexist: 1.0
+  constant_offset: 1.7
+  constant_exist: 4.5 #2.5
+  constant_nonexist: 4.0 # 1.0
   constant_angle: 1.0
   constant_similarity: 1.0
-  constant_attention: 0.01
-  constant_alpha: 0.5
-  constant_beta: 0.5
+  constant_attention: 4.0
+  constant_alpha: 8.0
+  constant_beta: 8.0
+  constant_branch_disc: 4.0
   constant_l: 1.0
   constant_lane_loss: 1.0
   constant_instance_loss: 1.0
+  iou_loss_weight: 3.0

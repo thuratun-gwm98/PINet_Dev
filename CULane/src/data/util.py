@@ -16,18 +16,20 @@ p = Parameters()
 ## 
 ###############################################################
 
-def visualize_points(image, x, y):
+def visualize_points(image, x, y, windowname):
     image = image
+    
     image =  np.rollaxis(image, axis=2, start=0)
-    image =  np.rollaxis(image, axis=2, start=0)#*255.0
+    image =  np.rollaxis(image, axis=2, start=0)*255.0
+    # print(f"[Debug]: Image Shape >> {image.shape}")
     image = image.astype(np.uint8).copy()
 
     for k in range(len(y)):
         for i, j in zip(x[k], y[k]):
             if i > 0:
-                image = cv2.circle(image, (int(i), int(j)), 2, p.color[1], -1)
+                image = cv2.circle(image, (int(i), int(j)), 2, p.color[k], -1)
 
-    cv2.imshow("test2", image)
+    cv2.imshow(windowname, image)
     cv2.waitKey(0)  
 
 def visualize_points_origin_size(x, y, test_image, ratio_w, ratio_h):

@@ -12,17 +12,17 @@ class Parameters():
     save_path = "savefile/"
     model_path = "savefile/30_tensor(0.2158)_lane_detection_network.pth"
     batch_size = 1
-    x_size = 800 # 1920
-    y_size = 320 # 768
-    x_ratio = 12.5 #30
-    y_ratio = 10 #24
+    x_size = 1280 # 1920
+    y_size = 512 # 768
+    x_ratio = 16 #30
+    y_ratio = 16 #24
     grid_x = int(x_size/x_ratio)  #64
     grid_y = int(y_size/y_ratio)  #32
-    feature_size = 4
+    feature_size = 8
     regression_size = 110
     mode = 3
     threshold_point = 0.93 #0.88 #0.93 #0.95 #0.93
-    threshold_instance = 0.008 # 0.0005 # 0.005 # 0.08
+    threshold_instance = 0.005 # 0.08 # 0.005 # 0.008 # 0.0005 # 0.005 # 0.08
 
     #loss function parameter
     K1 = 1.0                     #  ####################################

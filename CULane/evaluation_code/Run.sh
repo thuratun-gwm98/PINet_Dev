@@ -7,7 +7,7 @@ save_dir=/home/thuratun/GW_workspace/CS2/Hitachi_Astemo_Prj/LaneDetection/PINet_
 bin_dir=${root}
 
 w_lane=30;
-iou=0.1;  # Set iou to 0.3 or 0.5
+iou=0.4;  # Set iou to 0.3 or 0.5
 im_w=3840
 im_h=2160
 frame=1

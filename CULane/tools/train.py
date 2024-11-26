@@ -83,11 +83,12 @@ def Training():
     for epoch in range(train_cfg['n_epoch']):
         lane_model.training_mode()
         count=0
+        # print(f"[Debug]: Initial Sampleing List >>> {sampling_list}")
         for inputs, target_lanes, target_h, test_image, data_list in loader.Generate(sampling_list):
-            print(f"[Debug]: Target Lane 2 Length >> {len(target_lanes[0])} ")
+            # print(f"[Debug]: Target Lane 2 Length >> {len(target_lanes[0])} ")
             # util.visualize_points(inputs[0], target_lanes[0], target_h[0], "ToTrain")
             #training
-            loss_p, offset_loss, sisc_loss, s_disc_loss, b_disc_loss, c_disc_loss, exist_condidence_loss, nonexist_confidence_loss, attention_loss, iou_loss = lane_model.train(inputs, target_lanes, target_h, epoch, lane_model, data_list)
+            loss_p, offset_loss, sisc_loss, disc_loss, exist_condidence_loss, nonexist_confidence_loss, attention_loss, iou_loss = lane_model.train(inputs, target_lanes, target_h, epoch, lane_model, data_list)
             torch.cuda.synchronize()
             loss_p = loss_p.cpu().data
             
@@ -101,23 +102,26 @@ def Training():
             if epoch==0 or (epoch+1)%5==0:
                 # lane_model.save_model(epoch, loss_p)
                 step_ = f"{epoch}_{step}"
-                print(f"Test Image Shape >>> {test_image.shape}")
+                # print(f"Test Image Shape >>> {test_image.shape}")
                 testing(lane_model, test_image, epoch, count, offset_loss)
 
             # testing(lane_model, test_image, epoch, count, offset_loss)
 
             count+=1
             step += 1
-
+        
         sampling_list = copy.deepcopy(lane_model.get_data_list())
+        # print(f"[Debug]: Return Sampling List >>> {sampling_list}")
+        # print(f"[Debug]: Return Sampling List Length >>> {len(sampling_list)}")
         lane_model.sample_reset()
 
         loss_dict["total_loss"].append(loss_p.item())
         loss_dict["offset_loss"].append(offset_loss.item())
         loss_dict["sisc_loss"].append(sisc_loss.item())
-        loss_dict["s_disc_loss"].append(s_disc_loss.item())
-        loss_dict["b_disc_loss"].append(b_disc_loss.item())
-        loss_dict["c_disc_loss"].append(c_disc_loss.item())
+        # loss_dict["s_disc_loss"].append(s_disc_loss.item())
+        # loss_dict["b_disc_loss"].append(b_disc_loss.item())
+        # loss_dict["c_disc_loss"].append(c_disc_loss.item())
+        loss_dict["disc_loss"].append(disc_loss.item())
         loss_dict["exist_condidence_loss"].append(exist_condidence_loss.item())
         loss_dict["nonexist_confidence_loss"].append(nonexist_confidence_loss.item())
         loss_dict["attention_loss"].append(attention_loss)
@@ -148,12 +152,12 @@ def testing(lane_model, test_image, epoch, count, loss):
 
     _, _, ti = test.test(lane_model, np.array([test_image]))
 
-    save_path = f"test_result/images/epoch_{epoch}/"
+    save_path = f"test_result/images/epoch/"
     os.makedirs(save_path, exist_ok=True)
 
     cv2.putText(ti[0], str(loss), (50, 70), cv2.FONT_HERSHEY_COMPLEX, 1.3, (0, 0, 255), 1)
 
-    cv2.imwrite(f'{save_path}/result_{str(epoch)}_{str(count)}.png', ti[0])
+    cv2.imwrite(f'{save_path}/result_{str(epoch)}_{str(count)}.jpg', ti[0])
 
     lane_model.training_mode()
 

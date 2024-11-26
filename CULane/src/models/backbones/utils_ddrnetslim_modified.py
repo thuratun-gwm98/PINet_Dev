@@ -50,59 +50,18 @@ class BasicBlock(nn.Module):
         else:
             return self.relu(out)
         
-# class Bottleneck(nn.Module):
-#     expansion = 2
-
-#     def __init__(self, inplanes, planes, stride=1, downsample=None, no_relu=True):
-#         super(Bottleneck, self).__init__()
-#         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
-#         self.bn1 = BatchNorm2d(planes, momentum=bn_mom)
-#         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
-#                                padding=1, bias=False)
-#         self.bn2 = BatchNorm2d(planes, momentum=bn_mom)
-#         self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size=1,
-#                                bias=False)
-#         self.bn3 = BatchNorm2d(planes * self.expansion, momentum=bn_mom)
-#         self.relu = nn.ReLU(inplace=True)
-#         self.downsample = downsample
-#         self.stride = stride
-#         self.no_relu = no_relu
-
-#     def forward(self, x):
-#         residual = x
-
-#         out = self.conv1(x)
-#         out = self.bn1(out)
-#         out = self.relu(out)
-
-#         out = self.conv2(out)
-#         out = self.bn2(out)
-#         out = self.relu(out)
-
-#         out = self.conv3(out)
-#         out = self.bn3(out)
-
-#         if self.downsample is not None:
-#             residual = self.downsample(x)
-
-#         out += residual
-#         if self.no_relu:
-#             return out
-#         else:
-#             return self.relu(out)
-
 class Bottleneck(nn.Module):
     expansion = 2
 
-    def __init__(self, inplanes, planes, stride=1, padding=0, downsample=None, no_relu=True):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, no_relu=True):
         super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=3, stride=2, padding=2, bias=False)
+        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         self.bn1 = BatchNorm2d(planes, momentum=bn_mom)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1,
-                               padding=(2, 1), bias=False)
-        self.bn2 = BatchNorm2d(planes, momentum=bn_mom)
-        self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size=2, stride=1,
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
                                padding=1, bias=False)
+        self.bn2 = BatchNorm2d(planes, momentum=bn_mom)
+        self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size=1,
+                               bias=False)
         self.bn3 = BatchNorm2d(planes * self.expansion, momentum=bn_mom)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
@@ -113,30 +72,71 @@ class Bottleneck(nn.Module):
         residual = x
 
         out = self.conv1(x)
-        print(f"Conv1 Shape --> {out.shape}")
         out = self.bn1(out)
         out = self.relu(out)
 
         out = self.conv2(out)
-        print(f"Conv2 Shape --> {out.shape}")
         out = self.bn2(out)
         out = self.relu(out)
 
         out = self.conv3(out)
-        print(f"Conv3 Shape --> {out.shape}")
         out = self.bn3(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
-
-        print(f"Out >>> {out.shape}")
-        print(f"Residual >>> {residual.shape}")
 
         out += residual
         if self.no_relu:
             return out
         else:
             return self.relu(out)
+
+# class Bottleneck(nn.Module):
+#     expansion = 2
+
+#     def __init__(self, inplanes, planes, stride=1, padding=0, downsample=None, no_relu=True):
+#         super(Bottleneck, self).__init__()
+#         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=3, stride=2, padding=2, bias=False)
+#         self.bn1 = BatchNorm2d(planes, momentum=bn_mom)
+#         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1,
+#                                padding=(2, 1), bias=False)
+#         self.bn2 = BatchNorm2d(planes, momentum=bn_mom)
+#         self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size=2, stride=1,
+#                                padding=1, bias=False)
+#         self.bn3 = BatchNorm2d(planes * self.expansion, momentum=bn_mom)
+#         self.relu = nn.ReLU(inplace=True)
+#         self.downsample = downsample
+#         self.stride = stride
+#         self.no_relu = no_relu
+
+#     def forward(self, x):
+#         residual = x
+
+#         out = self.conv1(x)
+#         # print(f"Conv1 Shape --> {out.shape}")
+#         out = self.bn1(out)
+#         out = self.relu(out)
+
+#         out = self.conv2(out)
+#         # print(f"Conv2 Shape --> {out.shape}")
+#         out = self.bn2(out)
+#         out = self.relu(out)
+
+#         out = self.conv3(out)
+#         # print(f"Conv3 Shape --> {out.shape}")
+#         out = self.bn3(out)
+
+#         if self.downsample is not None:
+#             residual = self.downsample(x)
+
+#         print(f"Out >>> {out.shape}")
+#         print(f"Residual >>> {residual.shape}")
+
+#         out += residual
+#         if self.no_relu:
+#             return out
+#         else:
+#             return self.relu(out)
 
 class DAPPM(nn.Module):
     def __init__(self, inplanes, branch_planes, outplanes):
@@ -243,11 +243,11 @@ class DAPPM(nn.Module):
 
     def forward(self, x):
 
-        print(f"In DAPPM >>>>>>>>>")
-        print(f"Input Shape >>>> {x.shape}")               # 12, 30/32      # 8, 20         # 16, 32
-        print(f"Scale0 >>> {self.scale0(x).shape}") 
-        print(f"Scale1 ---> {self.scale1(x).shape}")        # 6, 15/16      # 4, 10         # 8, 16
-        print(f"Scale2 ---> {self.scale2(x).shape}")        # 3, 8             # 2, 5       # 4, 8
+        # print(f"In DAPPM >>>>>>>>>")
+        # print(f"Input Shape >>>> {x.shape}")               # 12, 30/32      # 8, 20         # 16, 32
+        # print(f"Scale0 >>> {self.scale0(x).shape}") 
+        # print(f"Scale1 ---> {self.scale1(x).shape}")        # 6, 15/16      # 4, 10         # 8, 16
+        # print(f"Scale2 ---> {self.scale2(x).shape}")        # 3, 8             # 2, 5       # 4, 8
         # print(f"Scale3 ---> {self.scale3(x).shape}")        # 2, 4      # 1,1   # 1, 2
         # print(f"Scale4 ---> {self.scale4(x).shape}")        # 1, 2      # 
 
@@ -258,12 +258,12 @@ class DAPPM(nn.Module):
 
         x_list.append(self.scale0(x))
         
-        print(f"X List 0 >>> {x_list[0].shape}")
+        # print(f"X List 0 >>> {x_list[0].shape}")
         x_list.append(self.process1((F.interpolate(self.scale1(x),   # 6, 15 16  # 4, 10
                         scale_factor=(2, 2),
                         mode='bilinear')+x_list[0])))
         
-        print(f"X List 1 >>> {x_list[1].shape}")
+        # print(f"X List 1 >>> {x_list[1].shape}")
         x_list.append(self.process2((F.interpolate(self.scale2(x),    # 3, 8   # 2, 4  / 1, 2  # 16, 32
                         scale_factor=(4, 4),
                         mode='bilinear')+x_list[1])))
@@ -280,10 +280,10 @@ class DAPPM(nn.Module):
         # x_list.append(self.process4((F.interpolate(self.scale4(x),   # 1, 2
         #                 scale_factor=(12, 15),
         #                 mode='bilinear')+x_list[3])))
-        print(f"X List >>> {len(x_list)}")
+        # print(f"X List >>> {len(x_list)}")
 
-        print(f"Shortcut X ----> {self.shortcut(x).shape}")
-        print(f"Compression -----> {torch.cat(x_list, 1).shape}")
+        # print(f"Shortcut X ----> {self.shortcut(x).shape}")
+        # print(f"Compression -----> {torch.cat(x_list, 1).shape}")
         # print(f)
         out = self.compression(torch.cat(x_list, 1)) + self.shortcut(x)
         return out
